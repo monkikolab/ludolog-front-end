@@ -1,0 +1,34 @@
+# Ejemplo de consola nueva.
+#
+# Game & Watch no viene en el catalogo, asi que este archivo la anade de verdad.
+# Copialo a <unidad>/Ludolog/systems/, deja su imagen en
+# Ludolog/media/systems/gameandwatch.png y pulsa "Reload catalog" en los ajustes.
+
+[[system]]
+id = "gameandwatch"
+name = "Game & Watch"
+label = "G&W"
+
+# Nombre No-Intro: es lo que el scraper busca en libretro-thumbnails.
+# Sin esto la consola funciona, pero nunca encontrara caratulas.
+raName = "Handheld Electronic Game"
+
+# Core de RetroArch. Sin esto solo se puede lanzar con un emulador dedicado
+# que este declarado en emulators.toml.
+raCore = "gw"
+
+accent = "0xffc0392b"
+boxAspect = 1.0
+zipOk = true
+
+# El grafico de la consola: relativo a una carpeta de medios, o ruta absoluta.
+image = "systems/gameandwatch.png"
+
+description = "Las maquinitas de Nintendo de 1980, con pantalla LCD y un solo juego cada una."
+
+# Extensiones propias, sin punto. No hace falta poner zip ni 7z: de eso se encarga zipOk.
+extensions = ["mgw"]
+
+# Solo las grafias que NO se deducen del nombre: "Game & Watch" y "G&W" ya se reconocen
+# solas, porque el name y el label se comparan sin espacios ni signos.
+aliases = ["gameandwatch", "gw", "handheldelectronicgame"]

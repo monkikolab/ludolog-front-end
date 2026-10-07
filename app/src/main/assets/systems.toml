@@ -1,0 +1,1377 @@
+# Catalogo de sistemas.
+#
+# Cada [[system]] es una consola. Para anadir una nueva basta con pegar un
+# bloque mas al final de este archivo, o dejar un .toml propio en
+# <unidad>/Ludolog/systems/ : se fusiona por id, lo que este
+# aqui y no alli se conserva.
+
+[defaults]
+zipExtensions = ["zip", "7z"]
+discSystems = [
+  "psx", "ps2", "psp", "segacd", "saturn", "dreamcast", "gamecube", "wii", "wiiu",
+  "pcenginecd", "xbox", "xbox360", "ps3",
+]
+regionSuffixes = [
+  "usa", "us", "na", "jp", "japan", "eu", "europe", "pal", "ntsc", "world", "wor",
+]
+# Extensiones demasiado genericas para identificar una consola por si solas.
+# Y las que una sola consola reclama pero que en la carpeta de OTRA no son suyas: un
+# README.md en la de PlayStation salia como juego de Mega Drive, un .ccd de CloneCD como
+# uno de PC-FX, y un .pkg de Vita como uno de PS3. En su propia carpeta se siguen leyendo.
+ambiguousExtensions = [
+  "app", "bin", "rom", "dat", "img", "iso", "chd", "cue", "elf", "m3u",
+  "md", "ccd", "toc", "pkg",
+]
+
+[[system]]
+id = "gb"
+maker = "Nintendo"
+year = 1989
+specs = ["CPU|LR35902 4.19 MHz", "RAM|8 KB", "VIDEO|160x144 4 shades", "SOUND|4 channels"]
+videoSnaps = "nintendo-game-boy-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Game Boy"
+label = "GB"
+raName = "Nintendo - Game Boy"   # nombre No-Intro, lo usa el scraper
+raCore = "gambatte"
+accent = "0xff8bac0f"
+boxAspect = 1
+zipOk = true
+image = "systems/gb.png"
+extensions = ["gb", "gbc"]
+aliases = [
+  "gameboy", "nintendogameboy", "sgb", "supergameboy", "dmg", "gbmsu", "gb2players",
+  "gameboyclassic",
+]
+
+[[system]]
+id = "gbc"
+maker = "Nintendo"
+year = 1998
+specs = ["CPU|LR35902 8.39 MHz", "RAM|32 KB", "VIDEO|160x144 56 col", "SOUND|4 channels"]
+videoSnaps = "gbcsnaps"   # coleccion de videos de partida en archive.org
+name = "Game Boy Color"
+label = "GBC"
+raName = "Nintendo - Game Boy Color"   # nombre No-Intro, lo usa el scraper
+raCore = "gambatte"
+accent = "0xff7b5fb5"
+boxAspect = 1
+zipOk = true
+image = "systems/gbc.png"
+extensions = ["gbc", "gb"]
+aliases = ["gameboycolor", "gameboycolour", "nintendogameboycolor", "cgb", "gbc2players"]
+
+[[system]]
+id = "gba"
+maker = "Nintendo"
+year = 2001
+specs = ["CPU|ARM7TDMI 16.8 MHz", "RAM|256 + 32 KB", "VIDEO|240x160 15-bit", "SOUND|2 PCM + 4 PSG"]
+videoSnaps = "gbasnaps"   # coleccion de videos de partida en archive.org
+name = "Game Boy Advance"
+label = "GBA"
+raName = "Nintendo - Game Boy Advance"   # nombre No-Intro, lo usa el scraper
+raCore = "mgba"
+accent = "0xff6c63d2"
+zipOk = true
+image = "systems/gba.png"
+description = "32-bit handheld from 2001, backwards compatible with the Game Boy. The first models had no backlit screen."
+extensions = ["gba"]
+aliases = [
+  "gameboyadvance", "nintendogameboyadvance", "agb", "mgba", "gba2players",
+  "gameboyadvancesp", "advance",
+]
+
+[[system]]
+id = "nes"
+maker = "Nintendo"
+year = 1983
+specs = ["CPU|2A03 1.79 MHz", "RAM|2 KB", "VIDEO|256x240 PPU", "SOUND|5 channels"]
+videoSnaps = "nintendo-entertainment-system-video-snaps"   # coleccion de videos de partida en archive.org
+name = "NES"
+label = "NES"
+raName = "Nintendo - Nintendo Entertainment System"   # nombre No-Intro, lo usa el scraper
+raCore = "fceumm"
+accent = "0xffe05e5e"
+boxAspect = 0.72
+zipOk = true
+image = "systems/nes.png"
+description = "Pulled the industry out of the 1983 crash. Outside Japan it shipped disguised as a toy, to dodge the word videogame entirely."
+extensions = ["nes", "fds", "unf"]
+aliases = [
+  "famicom", "fc", "fds", "famicomdisksystem", "nintendofamicom",
+  "nintendoentertainmentsystem", "nintendones", "nintendo", "nintendonesfamicom",
+  "nintendo - family computer disk system",
+]
+
+[[system]]
+id = "snes"
+maker = "Nintendo"
+year = 1990
+specs = ["CPU|5A22 3.58 MHz", "RAM|128 KB", "VIDEO|256x224 15-bit", "SOUND|SPC700 8 ch"]
+videoSnaps = "super-nintendo-entertainment-system-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Super Nintendo"
+label = "SNES"
+raName = "Nintendo - Super Nintendo Entertainment System"   # nombre No-Intro, lo usa el scraper
+raCore = "snes9x"
+accent = "0xff9e9bef"
+boxAspect = 1.4
+zipOk = true
+image = "systems/snes.png"
+description = "Nintendo answer to the Mega Drive in 1990. Its sound chip and Mode 7 defined how the 16-bit era looked and sounded."
+# Y los de copiadora, como en ES-DE: solo Satellaview los reclamaba, y en la carpeta de SNES
+# un .fig o un .swc salia como juego de Satellaview.
+extensions = ["sfc", "smc", "fig", "swc", "gd3", "gd7", "mgd"]
+aliases = [
+  "snesna", "sfc", "superfamicom", "supernintendo", "supernes", "supa",
+  "supernintendoentertainmentsystem", "nintendosnes", "snesmsu1", "snesmsu",
+  "superfamicomsnes", "snessuperfamicom",
+  "super nintendo entertainment system - msu-1",
+]
+
+[[system]]
+id = "n64"
+maker = "Nintendo"
+year = 1996
+specs = ["CPU|VR4300 93.75 MHz", "RAM|4 MB RDRAM", "VIDEO|RCP 62.5 MHz", "SOUND|16-bit stereo"]
+videoSnaps = "n64snaps"   # coleccion de videos de partida en archive.org
+name = "Nintendo 64"
+label = "N64"
+raName = "Nintendo - Nintendo 64"   # nombre No-Intro, lo usa el scraper
+raCore = "mupen64plus_next_gles3"
+accent = "0xff4fbf6b"
+boxAspect = 1.4
+zipOk = true
+image = "systems/n64.png"
+description = "Nintendo first 3D console and the one that made the analogue stick standard. Stayed on cartridges while everyone moved to CD."
+extensions = ["n64", "z64", "v64"]
+aliases = ["nintendo64", "nintendon64", "n64dd", "ultra64"]
+
+[[system]]
+id = "gamecube"
+maker = "Nintendo"
+year = 2001
+specs = ["CPU|Gekko 486 MHz", "RAM|24 MB 1T-SRAM", "VIDEO|Flipper 162 MHz", "SOUND|DSP 64 ch"]
+videoSnaps = "nintendo-gamecube-video-snaps"   # coleccion de videos de partida en archive.org
+name = "GameCube"
+label = "GC"
+raName = "Nintendo - GameCube"   # nombre No-Intro, lo usa el scraper
+accent = "0xff7c6fdb"
+boxAspect = 0.72
+zipOk = false
+image = "systems/gamecube.png"
+description = "2001 console with its own mini-DVDs and a handle moulded into the case. Its controller is still a reference for fighting games."
+extensions = ["iso", "rvz", "gcm", "ciso", "gcz", "wia", "tgc"]
+aliases = ["gc", "ngc", "gcn", "nintendogamecube", "dolphin"]
+
+[[system]]
+id = "wii"
+maker = "Nintendo"
+year = 2006
+specs = ["CPU|Broadway 729 MHz", "RAM|88 MB", "VIDEO|Hollywood 243 MHz", "SOUND|DSP 64 ch"]
+videoSnaps = "nintendo-wii-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Wii"
+label = "WII"
+raName = "Nintendo - Wii"   # nombre No-Intro, lo usa el scraper
+accent = "0xffb9e3f5"
+boxAspect = 0.72
+zipOk = false
+image = "systems/wii.png"
+description = "Bet on motion control instead of raw power, and with it reached people who did not play games."
+extensions = ["iso", "rvz", "wbfs", "gcz", "wia", "tgc", "ciso"]
+aliases = ["nintendowii", "wiiware", "nintendo wiiware"]
+
+[[system]]
+id = "wiiu"
+maker = "Nintendo"
+year = 2012
+specs = ["CPU|Espresso 1.24 GHz", "RAM|2 GB DDR3", "VIDEO|Latte 550 MHz", "SOUND|5.1 LPCM"]
+videoSnaps = "nintendo-wii-u-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Wii U"
+label = "WII U"
+raName = "Nintendo - Wii U"   # nombre No-Intro, lo usa el scraper
+accent = "0xff3bb4e5"
+zipOk = false
+image = "systems/wiiu.png"
+extensions = ["wua", "wud", "wux", "wuhb", "rpx"]
+aliases = ["nintendowiiu", "cemu", "wup"]
+
+[[system]]
+id = "nds"
+maker = "Nintendo"
+year = 2004
+specs = ["CPU|ARM9 67 MHz", "RAM|4 MB", "VIDEO|2x 256x192", "SOUND|16 channels"]
+videoSnaps = "NintendoDSVideoSnaps"   # coleccion de videos de partida en archive.org
+name = "Nintendo DS"
+label = "NDS"
+raName = "Nintendo - Nintendo DS"   # nombre No-Intro, lo usa el scraper
+raCore = "melonds"
+accent = "0xffc8c5bc"
+boxAspect = 1.1
+zipOk = true
+image = "systems/nds.png"
+extensions = ["nds"]
+aliases = ["ds", "nintendods", "ndsi", "dsi", "nintendodsi", "melonds", "drastic"]
+
+[[system]]
+id = "3ds"
+maker = "Nintendo"
+year = 2011
+specs = ["CPU|2x ARM11 268 MHz", "RAM|128 MB FCRAM", "VIDEO|PICA200 268 MHz", "SCREEN|400x240 3D"]
+videoSnaps = "nintendo-3ds-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Nintendo 3DS"
+label = "3DS"
+raName = "Nintendo - Nintendo 3DS"   # nombre No-Intro, lo usa el scraper
+raCore = "citra"
+accent = "0xffce4a4a"
+boxAspect = 0.9
+zipOk = false
+image = "systems/3ds.png"
+extensions = ["3ds", "cia", "cci", "zcci", "cxi", "3dsx", "app"]
+aliases = ["n3ds", "nintendo3ds", "citra", "azahar", "3dsxl"]
+
+[[system]]
+id = "virtualboy"
+maker = "Nintendo"
+year = 1995
+specs = ["CPU|NEC V810 20 MHz", "RAM|64 KB", "VIDEO|384x224 red LED", "SOUND|6 channels"]
+videoSnaps = "NintendoVirtualBoyVideoSnaps"   # coleccion de videos de partida en archive.org
+name = "Virtual Boy"
+label = "VB"
+raName = "Nintendo - Virtual Boy"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_vb"
+accent = "0xffd64545"
+boxAspect = 1.4
+zipOk = true
+image = "systems/virtualboy.png"
+extensions = ["vb"]
+aliases = ["vb", "nintendovirtualboy", "vboy"]
+
+[[system]]
+id = "megadrive"
+maker = "Sega"
+year = 1988
+specs = ["CPU|68000 7.67 MHz", "RAM|64 KB", "VIDEO|320x224 VDP", "SOUND|YM2612 FM 6 ch"]
+videoSnaps = "sega-genesis-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Mega Drive"
+label = "MD"
+raName = "Sega - Mega Drive - Genesis"   # nombre No-Intro, lo usa el scraper
+raCore = "genesis_plus_gx"
+accent = "0xff4a7bd0"
+boxAspect = 0.72
+zipOk = true
+image = "systems/megadrive.png"
+description = "Sega 16-bit machine, the one that started the console war against Nintendo through advertising as much as hardware."
+extensions = ["md", "gen", "smd", "bin"]
+aliases = [
+  "genesis", "md", "smd", "gen", "segagenesis", "segamegadrive", "megadrivejp",
+  "megadrivemsu", "genesismsu", "segamegadrivegenesis", "megadrivegenesis",
+  "genesismegadrive", "sega genesis - msu",
+]
+
+[[system]]
+id = "mastersystem"
+maker = "Sega"
+year = 1985
+specs = ["CPU|Z80 3.58 MHz", "RAM|8 KB", "VIDEO|256x192 VDP", "SOUND|SN76489 4 ch"]
+videoSnaps = "mastersystemsnaps"   # coleccion de videos de partida en archive.org
+name = "Master System"
+label = "SMS"
+raName = "Sega - Master System - Mark III"   # nombre No-Intro, lo usa el scraper
+raCore = "genesis_plus_gx"
+accent = "0xffd05656"
+zipOk = true
+image = "systems/mastersystem.png"
+extensions = ["sms"]
+aliases = ["sms", "segamastersystem", "mark3", "segamark3", "mastersystemmarkiii", "master"]
+
+[[system]]
+id = "gamegear"
+maker = "Sega"
+year = 1990
+specs = ["CPU|Z80 3.58 MHz", "RAM|8 KB", "VIDEO|160x144 4096 col", "SOUND|SN76489 4 ch"]
+videoSnaps = "gamegearsnaps"   # coleccion de videos de partida en archive.org
+name = "Game Gear"
+label = "GG"
+raName = "Sega - Game Gear"   # nombre No-Intro, lo usa el scraper
+raCore = "genesis_plus_gx"
+accent = "0xff5b8def"
+zipOk = true
+image = "systems/gamegear.png"
+extensions = ["gg"]
+aliases = ["gg", "segagamegear"]
+
+[[system]]
+id = "segacd"
+maker = "Sega"
+year = 1991
+specs = ["CPU|68000 12.5 MHz", "RAM|768 KB", "MEDIA|CD-ROM 1x", "SOUND|RF5C164 8 ch"]
+videoSnaps = "sega-cd-video-snap_202403"   # coleccion de videos de partida en archive.org
+name = "Sega CD"
+label = "SCD"
+raName = "Sega - Mega-CD - Sega CD"   # nombre No-Intro, lo usa el scraper
+raCore = "genesis_plus_gx"
+accent = "0xff8fa3b8"
+boxAspect = 0.86
+zipOk = false
+image = "systems/segacd.png"
+extensions = ["cue", "chd", "m3u"]
+aliases = ["megacd", "scd", "mcd", "segamegacd", "megacdjp", "segamegacdsegacd", "megacdsegacd"]
+
+[[system]]
+id = "sega32x"
+maker = "Sega"
+year = 1994
+specs = ["CPU|2x SH-2 23 MHz", "RAM|256 KB", "VIDEO|32768 colours", "SOUND|PWM stereo"]
+videoSnaps = "sega-32x-video-snap"   # coleccion de videos de partida en archive.org
+name = "Sega 32X"
+label = "32X"
+raName = "Sega - 32X"   # nombre No-Intro, lo usa el scraper
+raCore = "picodrive"
+accent = "0xffcf9440"
+boxAspect = 0.72
+zipOk = true
+image = "systems/sega32x.png"
+description = "A 1994 add-on that turned the Mega Drive into a 32-bit machine. It did not last: the Saturn arrived almost immediately."
+extensions = ["32x"]
+aliases = [
+  "32x", "sega32xna", "sega32xjp", "mega32x", "genesis32x", "super32x", "megadrive32x",
+  "segamegadrive32x", "segagenesis32x",
+]
+
+[[system]]
+id = "saturn"
+maker = "Sega"
+year = 1994
+specs = ["CPU|2x SH-2 28.6 MHz", "RAM|2 MB", "VIDEO|VDP1 + VDP2", "SOUND|SCSP 32 ch"]
+videoSnaps = "sega-saturn_202111"   # coleccion de videos de partida en archive.org
+name = "Saturn"
+label = "SAT"
+raName = "Sega - Saturn"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_saturn"
+accent = "0xff7a8fd4"
+boxAspect = 0.86
+zipOk = false
+image = "systems/saturn.png"
+extensions = ["cue", "chd", "m3u"]
+aliases = ["segasaturn", "saturnjp", "ss", "sat"]
+
+[[system]]
+id = "dreamcast"
+maker = "Sega"
+year = 1998
+specs = ["CPU|SH-4 200 MHz", "RAM|16 MB", "VIDEO|PowerVR2 100 MHz", "SOUND|AICA 64 ch"]
+videoSnaps = "sega-dreamcast-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Dreamcast"
+label = "DC"
+raName = "Sega - Dreamcast"   # nombre No-Intro, lo usa el scraper
+raCore = "flycast"
+accent = "0xffee8a4e"
+zipOk = true
+image = "systems/dreamcast.png"
+description = "Sega last console, ahead of its time on online play. It arrived too early and with the PlayStation 2 casting a shadow."
+extensions = ["cdi", "gdi", "chd", "cue", "m3u"]
+aliases = ["dc", "segadreamcast"]
+
+[[system]]
+id = "psx"
+maker = "Sony"
+year = 1994
+specs = ["CPU|R3000A 33.9 MHz", "RAM|2 MB", "VIDEO|1 MB VRAM", "SOUND|SPU 24 ch ADPCM"]
+videoSnaps = "sony-playstation-video-snaps"   # coleccion de videos de partida en archive.org
+name = "PlayStation"
+label = "PS1"
+raName = "Sony - PlayStation"   # nombre No-Intro, lo usa el scraper
+raCore = "pcsx_rearmed"
+accent = "0xffb9bdc7"
+zipOk = false
+image = "systems/psx.png"
+description = "Born from a failed CD-ROM partnership with Nintendo. Sony launched its own console in Japan in 1994 and won the generation."
+extensions = ["cue", "chd", "pbp", "m3u", "bin", "img"]
+aliases = [
+  "ps1", "ps", "psone", "playstation", "playstation1", "sonyplaystation",
+  "sonyplaystation1", "sonyps1", "sonypsx", "psxps1", "ps1psx",
+]
+
+[[system]]
+id = "ps2"
+maker = "Sony"
+year = 2000
+specs = ["CPU|EE 294.9 MHz", "RAM|32 MB RDRAM", "VIDEO|GS 147 MHz", "SOUND|SPU2 48 ch"]
+videoSnaps = "sony-playstation-2-video-snaps"   # coleccion de videos de partida en archive.org
+name = "PlayStation 2"
+label = "PS2"
+raName = "Sony - PlayStation 2"   # nombre No-Intro, lo usa el scraper
+accent = "0xff5d74c4"
+boxAspect = 0.72
+zipOk = false
+image = "systems/ps2.png"
+description = "The best-selling console ever made, past 155 million units. Its DVD player put it in living rooms that wanted no games at all."
+extensions = ["iso", "chd", "cso", "cue", "gz"]
+aliases = ["playstation2", "sonyplaystation2", "sonyps2", "pcsx2"]
+
+[[system]]
+id = "psp"
+maker = "Sony"
+year = 2004
+specs = ["CPU|Allegrex 333 MHz", "RAM|32-64 MB", "VIDEO|GE 166 MHz", "SCREEN|480x272"]
+videoSnaps = "sony-playstation-portable"   # coleccion de videos de partida en archive.org
+name = "PSP"
+label = "PSP"
+raName = "Sony - PlayStation Portable"   # nombre No-Intro, lo usa el scraper
+raCore = "ppsspp"
+accent = "0xff6a6f7b"
+boxAspect = 0.6
+zipOk = false
+image = "systems/psp.png"
+description = "Sony 2004 attempt at console-grade power in a pocket, with UMD as its own format."
+extensions = ["iso", "cso", "chd", "pbp"]
+aliases = [
+  "playstationportable", "sonyplaystationportable", "sonypsp", "ppsspp", "pspminis",
+  "playstation portable minis",
+]
+
+[[system]]
+id = "psvita"
+maker = "Sony"
+year = 2011
+specs = ["CPU|4x Cortex-A9", "RAM|512 MB", "VRAM|128 MB", "GPU|SGX543MP4+"]
+name = "PS Vita"
+label = "VITA"
+accent = "0xff4b5b9e"
+boxAspect = 0.9
+zipOk = false
+image = "systems/psvita.png"
+# Y el .psvita de ES-DE: un fichero de texto con el numero de titulo, que es lo que Vita3K
+# necesita para arrancar un juego (ver Hand.TITLE_ARGS).
+extensions = ["vpk", "zip", "psvita"]
+aliases = [
+  "vita", "playstationvita", "sonyplaystationvita", "psv", "sonypsvita", "vita3k",
+  "vita3kplus", "playstationvitapsvita",
+]
+
+[[system]]
+id = "switch"
+maker = "Nintendo"
+year = 2017
+specs = ["CPU|4x A57 1.02 GHz", "RAM|4 GB LPDDR4", "VIDEO|Maxwell 768 MHz", "SOUND|5.1 LPCM"]
+name = "Switch"
+label = "SWITCH"
+raName = "Nintendo - Switch"   # nombre No-Intro, lo usa el scraper
+accent = "0xffe8574c"
+boxAspect = 0.62
+zipOk = false
+image = "systems/switch.png"
+description = "Hybrid of console and handheld, 2017. Its detachable controllers let it be played anywhere."
+extensions = ["nsp", "xci", "nsz", "xcz"]
+aliases = ["nsw", "nintendoswitch", "yuzu", "eden", "citron", "sudachi", "ryujinx"]
+
+[[system]]
+id = "pc"
+name = "PC Games"
+label = "PC"
+accent = "0xff66c0f4"
+boxAspect = 0.68
+zipOk = false
+image = "systems/pc.png"
+description = "Computer games run through compatibility layers or streaming, not emulation."
+# «shortcut»: los accesos que GameHub y otras anclan en la pantalla de inicio (PinShortcut.kt).
+extensions = ["steam", "epic", "gog", "amazon", "pcgame", "gamehub", "desktop", "shortcut"]
+aliases = [
+  "gamenative", "steam", "pcgames", "windows", "epic", "epicgames", "gog", "amazon",
+  "windowsgames", "steamgames", "pcwindows",
+]
+
+[[system]]
+id = "xbox"
+maker = "Microsoft"
+year = 2001
+specs = ["CPU|Pentium III 733 MHz", "RAM|64 MB", "VIDEO|NV2A 233 MHz", "SOUND|MCPX 256 voices"]
+videoSnaps = "MicrosoftXboxVideoSnaps"   # coleccion de videos de partida en archive.org
+name = "Xbox"
+label = "XBOX"
+raName = "Microsoft - Xbox"   # nombre No-Intro, lo usa el scraper
+accent = "0xff6cbf43"
+boxAspect = 0.7
+zipOk = false
+image = "systems/xbox.png"
+extensions = ["iso", "xiso"]
+aliases = ["microsoftxbox", "xboxclassic", "originalxbox", "ogxbox", "xbx"]
+
+[[system]]
+id = "xbox360"
+maker = "Microsoft"
+year = 2005
+specs = ["CPU|3x Xenon 3.2 GHz", "RAM|512 MB GDDR3", "VIDEO|Xenos 500 MHz", "SOUND|5.1"]
+name = "Xbox 360"
+label = "X360"
+raName = "Microsoft - Xbox 360"   # nombre No-Intro, lo usa el scraper
+accent = "0xff8dc63f"
+zipOk = false
+image = "systems/xbox360.png"
+extensions = ["iso", "xex", "zar", "god", "bin"]
+aliases = ["x360", "xb360", "microsoftxbox360", "xenia", "xendroid", "xbla", "xboxlivearcade"]
+
+[[system]]
+id = "ps3"
+maker = "Sony"
+year = 2006
+specs = ["CPU|Cell 3.2 GHz", "RAM|256 MB XDR", "VIDEO|RSX 256 MB", "SOUND|7.1 LPCM"]
+name = "PlayStation 3"
+label = "PS3"
+raName = "Sony - PlayStation 3"   # nombre No-Intro, lo usa el scraper
+accent = "0xff4a78c4"
+boxAspect = 0.78
+zipOk = false
+image = "systems/ps3.png"
+extensions = ["ps3", "iso", "pkg", "chd", "cso", "zso"]
+aliases = ["playstation3", "sonyplaystation3", "sonyps3", "rpcs3"]
+
+[[system]]
+id = "pcengine"
+maker = "NEC"
+year = 1987
+specs = ["CPU|HuC6280 7.16 MHz", "RAM|8 KB", "VRAM|64 KB", "SOUND|6 ch wavetable"]
+videoSnaps = "pcenginesnaps"   # coleccion de videos de partida en archive.org
+name = "PC Engine"
+label = "PCE"
+raName = "NEC - PC Engine - TurboGrafx 16"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_pce_fast"
+accent = "0xffe8a33d"
+boxAspect = 1
+zipOk = true
+image = "systems/pcengine.png"
+extensions = ["pce", "sgx"]
+aliases = [
+  "pce", "tg16", "turbografx", "turbografx16", "necpcengine", "turbografx16pcengine",
+  "pcenginetg16", "tg16pcengine", "supergrafx", "sgx", "pcenginesupergrafx",
+  "necturbografx16", "turbo16", "nec - pc engine supergrafx",
+]
+
+[[system]]
+id = "pcenginecd"
+maker = "NEC"
+year = 1988
+name = "PC Engine CD"
+label = "PCECD"
+raName = "NEC - PC Engine CD - TurboGrafx-CD"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_pce_fast"
+accent = "0xffd9b24a"
+zipOk = false
+image = "systems/pcenginecd.png"
+extensions = ["cue", "chd", "m3u"]
+aliases = [
+  "pcecd", "tgcd", "tg16cd", "turbografxcd", "turbografx16cd", "necpcenginecd",
+  "pcenginecdturbografxcd", "turbocd", "necturbografxcd",
+]
+
+[[system]]
+id = "neogeo"
+maker = "SNK"
+year = 1990
+specs = ["CPU|68000 12 MHz", "RAM|64 KB", "VIDEO|320x224 4096 col", "SOUND|YM2610 15 ch"]
+videoSnaps = "neogeosnaps_202302"   # coleccion de videos de partida en archive.org
+name = "Neo Geo"
+label = "NEO"
+raName = "SNK - Neo Geo"   # nombre No-Intro, lo usa el scraper
+raCore = "fbneo"
+accent = "0xffe3b341"
+boxAspect = 0.86
+zipOk = false
+image = "systems/neogeo.png"
+extensions = ["zip", "7z"]
+aliases = ["neo", "snkneogeo", "neogeoaes", "neogeomvs", "aes", "mvs"]
+
+[[system]]
+id = "ngp"
+maker = "SNK"
+year = 1998
+name = "Neo Geo Pocket"
+label = "NGP"
+raName = "SNK - Neo Geo Pocket"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_ngp"
+accent = "0xff444a57"
+boxAspect = 0.72
+zipOk = true
+image = "systems/ngp.png"
+extensions = ["ngp"]
+aliases = ["neogeopocket", "snkneogeopocket"]
+
+[[system]]
+id = "ngpc"
+maker = "SNK"
+year = 1999
+specs = ["CPU|TLCS-900H 6.1 MHz", "RAM|12 KB", "VIDEO|160x152 4096 col", "SOUND|T6W28"]
+name = "NG Pocket Color"
+label = "NGPC"
+raName = "SNK - Neo Geo Pocket Color"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_ngp"
+accent = "0xff48a9c5"
+zipOk = true
+image = "systems/ngpc.png"
+extensions = ["ngc"]
+aliases = ["neogeopocketcolor", "neogeopocketcolour", "snkneogeopocketcolor", "ngpocketcolor"]
+
+[[system]]
+id = "wonderswan"
+maker = "Bandai"
+year = 1999
+specs = ["CPU|V30MZ 3.07 MHz", "RAM|16 KB", "VIDEO|224x144", "SOUND|4 ch wavetable"]
+videoSnaps = "BandaiWonderswanVideoSnaps"   # coleccion de videos de partida en archive.org
+name = "WonderSwan"
+label = "WS"
+raName = "Bandai - WonderSwan"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_wswan"
+accent = "0xff9aa0a8"
+boxAspect = 1
+zipOk = true
+image = "systems/wonderswan.png"
+extensions = ["ws"]
+aliases = ["ws", "wswan", "bandaiwonderswan"]
+
+[[system]]
+id = "wonderswancolor"
+maker = "Bandai"
+year = 2000
+name = "WonderSwan Color"
+label = "WSC"
+raName = "Bandai - WonderSwan Color"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_wswan"
+accent = "0xff58a0d8"
+zipOk = true
+image = "systems/wonderswancolor.png"
+extensions = ["wsc"]
+aliases = ["wsc", "wswanc", "wswancolor", "wonderswancolour", "bandaiwonderswancolor"]
+
+[[system]]
+id = "atari2600"
+maker = "Atari"
+year = 1977
+specs = ["CPU|6507 1.19 MHz", "RAM|128 bytes", "VIDEO|TIA 160x192", "SOUND|TIA 2 ch"]
+videoSnaps = "Atari2600VideoSnaps"   # coleccion de videos de partida en archive.org
+name = "Atari 2600"
+label = "2600"
+raName = "Atari - 2600"   # nombre No-Intro, lo usa el scraper
+raCore = "stella"
+accent = "0xffc46a3a"
+boxAspect = 0.72
+zipOk = true
+image = "systems/atari2600.png"
+extensions = ["a26", "bin"]
+aliases = ["a2600", "2600", "atarivcs", "vcs", "stella"]
+
+[[system]]
+id = "atari5200"
+maker = "Atari"
+year = 1982
+videoSnaps = "Atari5200VideoSnaps"   # coleccion de videos de partida en archive.org
+name = "Atari 5200"
+label = "5200"
+raName = "Atari - 5200"   # nombre No-Intro, lo usa el scraper
+raCore = "a5200"
+accent = "0xffb8b2a8"
+zipOk = true
+image = "systems/atari5200.png"
+extensions = ["a52", "bin", "car", "rom", "xex", "atr", "atx", "xfd", "cas", "cdm"]
+aliases = ["a5200", "5200", "atari5200"]
+
+[[system]]
+id = "atari7800"
+maker = "Atari"
+year = 1986
+videoSnaps = "atari7800snaps"   # coleccion de videos de partida en archive.org
+name = "Atari 7800"
+label = "7800"
+raName = "Atari - 7800"   # nombre No-Intro, lo usa el scraper
+raCore = "prosystem"
+accent = "0xffb05a48"
+zipOk = true
+image = "systems/atari7800.png"
+extensions = ["a78"]
+aliases = ["a7800", "7800", "atari7800prosystem", "prosystem"]
+
+[[system]]
+id = "lynx"
+maker = "Atari"
+year = 1989
+specs = ["CPU|65SC02 4 MHz", "RAM|64 KB", "VIDEO|160x102 4096 col", "SOUND|4 channels"]
+name = "Atari Lynx"
+label = "LYNX"
+raName = "Atari - Lynx"   # nombre No-Intro, lo usa el scraper
+raCore = "handy"
+accent = "0xffdd8833"
+zipOk = true
+image = "systems/lynx.png"
+extensions = ["lnx"]
+aliases = ["atarilynx", "alynx", "handy"]
+
+[[system]]
+id = "c64"
+maker = "Commodore"
+year = 1982
+specs = ["CPU|6510 1.02 MHz", "RAM|64 KB", "VIDEO|VIC-II 320x200", "SOUND|SID 3 voices"]
+name = "Commodore 64"
+label = "C64"
+raName = "Commodore - 64"   # nombre No-Intro, lo usa el scraper
+raCore = "vice_x64sc"
+accent = "0xff7a6bb8"
+zipOk = true
+image = "systems/c64.png"
+extensions = [
+  "d64", "d71", "d80", "d81", "d82", "g64", "t64", "tap", "prg", "p00", "crt", "x64",
+  "nib", "m3u",
+]
+aliases = ["commodore64", "commodore", "cbm64", "c64games", "vice", "x64"]
+
+[[system]]
+id = "amiga"
+maker = "Commodore"
+year = 1985
+specs = ["CPU|68000 7.16 MHz", "RAM|512 KB", "VIDEO|OCS 32 col", "SOUND|Paula 4 ch"]
+name = "Amiga"
+label = "AMIGA"
+raName = "Commodore - Amiga"   # nombre No-Intro, lo usa el scraper
+raCore = "puae"
+accent = "0xff4f7bd9"
+zipOk = true
+image = "systems/amiga.png"
+extensions = [
+  "adf", "adz", "dms", "ipf", "hdf", "hdz", "lha", "uae", "rp9", "fdi", "cue", "chd",
+  "iso", "m3u",
+]
+aliases = [
+  "commodoreamiga", "amiga500", "amiga600", "amiga1200", "a500", "a600", "a1200",
+  "puae", "uae", "amigaocs", "amigaaga",
+]
+
+[[system]]
+id = "arcade"
+videoSnaps = "mamearcade-video-snaps"   # coleccion de videos de partida en archive.org
+name = "Arcade"
+label = "ARCADE"
+raName = "FBNeo - Arcade Games"   # nombre No-Intro, lo usa el scraper
+raCore = "fbneo"
+accent = "0xffe0567b"
+zipOk = false
+image = "systems/arcade.png"
+extensions = ["zip", "7z"]
+aliases = [
+  "mame", "fbneo", "fba", "fbn", "fbalpha", "finalburnneo", "finalburnalpha", "cps",
+  "cps1", "cps2", "cps3", "mame2003", "mame2003plus", "mame2010", "mame2016",
+  "mame4droid", "hbmame", "mameadvmame", "advmame", "arcadegames", "coinops",
+  "arcade (finalburn neo)", "arcade (mame)", "cp system i", "cp system ii",
+  "cp system iii", "model3", "sega model 3", "stv", "sega titan video",
+]
+
+[[system]]
+id = "colecovision"
+maker = "Coleco"
+year = 1982
+name = "ColecoVision"
+label = "COLECO"
+raName = "Coleco - ColecoVision"   # nombre No-Intro, lo usa el scraper
+raCore = "gearcoleco"
+accent = "0xff3f6fd8"
+zipOk = true
+image = "systems/colecovision.png"
+extensions = ["col", "rom", "bin"]
+aliases = ["coleco", "cv", "colecovision", "colecogames"]
+
+[[system]]
+id = "pico8"
+maker = "Lexaloffle"
+year = 2015
+specs = ["SCREEN|128x128 16 col", "SOUND|4 channels", "CART|32 KB", "CODE|8192 tokens"]
+name = "PICO-8"
+label = "PICO-8"
+raName = "retro8"   # nombre No-Intro, lo usa el scraper
+accent = "0xffff77a8"
+boxAspect = 0.78
+zipOk = false
+image = "systems/pico8.png"
+description = "A fantasy console that never existed as hardware. Its limits are deliberate design: 128x128 pixels, 16 colours."
+extensions = ["p8", "p8.png"]
+aliases = ["pico-8", "p8", "picoeight", "lexaloffle"]
+
+[[system]]
+id = "3do"
+maker = "3DO"
+year = 1993
+specs = ["CPU|ARM60 12.5 MHz", "RAM|2 MB", "VIDEO|1 MB VRAM", "SOUND|DSP 16-bit"]
+name = "3DO"
+label = "3DO"
+raName = "The 3DO Company - 3DO"   # nombre No-Intro, lo usa el scraper
+raCore = "opera"
+zipOk = false
+image = "systems/3do.png"
+extensions = ["chd", "cue", "iso"]
+aliases = ["the 3do company - 3do"]
+
+[[system]]
+id = "cpc"
+maker = "Amstrad"
+year = 1984
+name = "Amstrad CPC"
+label = "CPC"
+raName = "Amstrad - CPC"   # nombre No-Intro, lo usa el scraper
+raCore = "crocods"
+zipOk = true
+image = "systems/cpc.png"
+extensions = ["dsk", "kcr", "sna", "cdt", "cpr", "m3u", "tap", "voc"]
+aliases = ["amstrad cpc", "amstrad - cpc"]
+
+[[system]]
+id = "arduboy"
+maker = "Arduboy"
+year = 2016
+name = "Arduboy"
+label = "ARDUBOY"
+raName = "Adruboy Inc - Arduboy"   # nombre No-Intro, lo usa el scraper
+raCore = "arduous"
+zipOk = false
+image = "systems/arduboy.png"
+extensions = ["arduboy"]
+aliases = ["adruboy inc - arduboy"]
+
+[[system]]
+id = "jaguar"
+maker = "Atari"
+year = 1993
+specs = ["CPU|68000 13.3 MHz", "RAM|2 MB", "VIDEO|Tom 26.6 MHz", "SOUND|Jerry DSP"]
+name = "Atari Jaguar"
+label = "JAGUAR"
+raName = "Atari - Jaguar"   # nombre No-Intro, lo usa el scraper
+raCore = "virtualjaguar"
+zipOk = true
+image = "systems/jaguar.png"
+extensions = ["j64", "jag", "rom", "abs", "cof", "bin", "prg"]
+aliases = ["atari jaguar", "atari - jaguar", "jaguarcd", "atari jaguar cd"]
+
+[[system]]
+id = "atarist"
+maker = "Atari"
+year = 1985
+name = "Atari ST"
+label = "ATARIST"
+raName = "Atari - ST"   # nombre No-Intro, lo usa el scraper
+raCore = "hatari"
+zipOk = true
+image = "systems/atarist.png"
+extensions = ["dim", "ipf", "m3u", "msa", "st", "stx"]
+
+[[system]]
+id = "atomiswave"
+maker = "Sammy"
+year = 2003
+name = "Atomiswave"
+label = "ATOMISWA"
+raName = "Atomiswave"   # nombre No-Intro, lo usa el scraper
+raCore = "flycast"
+zipOk = true
+image = "systems/atomiswave.png"
+extensions = ["bin", "cdi", "chd", "cue", "elf", "gdi", "iso", "m3u"]
+
+[[system]]
+id = "bbcmicro"
+maker = "Acorn"
+year = 1981
+name = "Acorn Computers BBC Micro"
+label = "BBCMICRO"
+raCore = "b2"
+zipOk = false
+image = "systems/bbcmicro.png"
+extensions = ["ssd", "dsd"]
+aliases = ["acorn computers bbc micro"]
+
+[[system]]
+id = "chip8"
+name = "CHIP-8"
+label = "CHIP8"
+raCore = "jaxe"
+zipOk = true
+image = "systems/chip8.png"
+extensions = ["ch8"]
+
+[[system]]
+id = "pet"
+maker = "Commodore"
+year = 1977
+name = "Commodore - PET"
+label = "PET"
+raName = "Commodore - PET"   # nombre No-Intro, lo usa el scraper
+raCore = "vice_xpet"
+zipOk = true
+image = "systems/pet.png"
+extensions = [
+  "bin", "crt", "d64", "d6z", "d71", "d7z", "d80", "d81", "d82", "d8z", "g41", "g4z",
+  "g64", "g6z", "gz", "lnx", "p00", "prg", "t64", "tap", "x64", "x6z", "d2m", "d4m",
+  "m3u", "nbz", "nib", "vfl", "vsf",
+]
+aliases = ["commodore - pet"]
+
+[[system]]
+id = "plus4"
+maker = "Commodore"
+year = 1984
+name = "Commodore - PLUS/4"
+label = "PLUS4"
+raName = "Commodore - Plus-4"   # nombre No-Intro, lo usa el scraper
+raCore = "vice_xplus4"
+zipOk = true
+image = "systems/plus4.png"
+extensions = [
+  "bin", "crt", "d64", "d6z", "d71", "d7z", "d80", "d81", "d82", "d8z", "g41", "g4z",
+  "g64", "g6z", "gz", "lnx", "p00", "prg", "t64", "tap", "x64", "x6z", "d2m", "d4m",
+  "m3u", "nbz", "nib", "vfl", "vsf",
+]
+aliases = ["commodore - plus/4", "commodore - plus-4"]
+
+[[system]]
+id = "doom"
+maker = "id Software"
+year = 1993
+name = "DOOM Game Engine"
+label = "DOOM"
+raName = "DOOM"   # nombre No-Intro, lo usa el scraper
+raCore = "prboom"
+zipOk = true
+image = "systems/doom.png"
+# El giro, el del PC de DOS: DOOM no tiene aparato propio, y es donde se jugaba. Relativo a la
+# carpeta de medios, asi cada tema pone el suyo (el ASCII en mainframe). Uno propio elegido
+# en el menu de la consola sigue mandando.
+video = "systems/dos.mp4"
+extensions = ["doomforge", "iwad", "pwad", "wad"]
+aliases = ["doom game engine"]
+
+[[system]]
+id = "dos"
+maker = "Microsoft"
+year = 1981
+videoSnaps = "MicrosoftDOSVideoSnaps"   # coleccion de videos de partida en archive.org
+name = "DOS"
+label = "DOS"
+raName = "DOS"   # nombre No-Intro, lo usa el scraper
+raCore = "dosbox_pure"
+zipOk = true
+image = "systems/dos.png"
+extensions = ["cue", "dosz", "ima", "img", "ins", "iso", "m3u", "m3u8", "vhd", "conf"]
+
+[[system]]
+id = "channelf"
+maker = "Fairchild"
+year = 1976
+name = "Fairchild Channel F"
+label = "CHANNELF"
+raName = "Fairchild - Channel F"   # nombre No-Intro, lo usa el scraper
+raCore = "freechaf"
+zipOk = true
+image = "systems/channelf.png"
+extensions = ["chf", "bin"]
+aliases = ["fairchild channel f", "fairchild - channel f"]
+
+[[system]]
+id = "flash"
+name = "Flash Player"
+label = "FLASH"
+zipOk = false
+image = "systems/flash.png"
+extensions = ["swiffid", "swf"]
+aliases = ["flash player"]
+
+[[system]]
+id = "intellivision"
+maker = "Mattel"
+year = 1979
+name = "Intellivision"
+label = "INTELLIV"
+raName = "Mattel - Intellivision"   # nombre No-Intro, lo usa el scraper
+raCore = "freeintv"
+zipOk = true
+image = "systems/intellivision.png"
+extensions = ["bin", "int", "rom"]
+aliases = ["mattel - intellivision"]
+
+[[system]]
+id = "j2me"
+name = "Java Me"
+label = "J2ME"
+raCore = "squirreljme"
+zipOk = false
+image = "systems/j2me.png"
+extensions = ["java", "jar", "jad", "jam", "kjx", "sqc"]
+aliases = ["java me"]
+
+[[system]]
+id = "lowresnx"
+name = "LowRes NX"
+label = "LOWRESNX"
+raName = "LowRes NX"   # nombre No-Intro, lo usa el scraper
+raCore = "lowresnx"
+zipOk = true
+image = "systems/lowresnx.png"
+extensions = ["nx"]
+
+[[system]]
+id = "odyssey2"
+maker = "Magnavox"
+year = 1978
+name = "Magnavox Odyssey 2"
+label = "ODYSSEY2"
+raName = "Magnavox - Odyssey2"   # nombre No-Intro, lo usa el scraper
+raCore = "o2em"
+zipOk = true
+image = "systems/odyssey2.png"
+extensions = ["bin"]
+aliases = ["magnavox odyssey 2", "magnavox - odyssey2", "videopac"]   # videopac: la carpeta de ES-DE
+
+[[system]]
+id = "megaduck"
+name = "Mega Duck"
+label = "MEGADUCK"
+raCore = "sameduck"
+zipOk = true
+image = "systems/megaduck.png"
+extensions = ["bin"]
+
+[[system]]
+id = "msx"
+maker = "Microsoft"
+year = 1983
+videoSnaps = "MicrosoftMSXDiscsVideoSnaps"   # coleccion de videos de partida en archive.org
+name = "MSX"
+label = "MSX"
+raName = "Microsoft - MSX"   # nombre No-Intro, lo usa el scraper
+raCore = "fmsx"
+zipOk = true
+image = "systems/msx.png"
+extensions = ["cas", "col", "dsk", "fdi", "m3u", "mx1", "mx2", "ri", "rom", "sc", "sg"]
+aliases = ["microsoft - msx", "msx1", "msx2", "msxturbor"]   # las carpetas de ES-DE
+
+[[system]]
+id = "pc88"
+maker = "NEC"
+year = 1981
+name = "NEC PC-88"
+label = "PC88"
+raCore = "quasi88"
+zipOk = false
+image = "systems/pc88.png"
+extensions = ["d88", "m3u", "u88"]
+aliases = ["nec pc-88"]
+
+[[system]]
+id = "pc98"
+maker = "NEC"
+year = 1982
+name = "NEC PC-98"
+label = "PC98"
+raName = "NEC - PC-98"   # nombre No-Intro, lo usa el scraper
+raCore = "np2kai"
+zipOk = true
+image = "systems/pc98.png"
+extensions = [
+  "2hd", "88d", "98d", "d88", "d98", "dup", "fdd", "fdi", "hdd", "hdi", "hdm", "hdn",
+  "nhd", "tfd", "thd", "xdf", "cue",
+]
+aliases = ["nec pc-98", "nec - pc-98"]
+
+[[system]]
+id = "pcfx"
+maker = "NEC"
+year = 1994
+name = "NEC PC-FX"
+label = "PCFX"
+raName = "NEC - PC-FX"   # nombre No-Intro, lo usa el scraper
+raCore = "mednafen_pcfx"
+zipOk = false
+image = "systems/pcfx.png"
+extensions = ["cue", "ccd", "toc", "chd"]
+aliases = ["nec pc-fx", "nec - pc-fx"]
+
+[[system]]
+id = "neogeocd"
+maker = "SNK"
+year = 1994
+name = "Neo Geo CD"
+label = "NEOGEOCD"
+raName = "SNK - Neo Geo CD"   # nombre No-Intro, lo usa el scraper
+raCore = "neocd"
+zipOk = false
+image = "systems/neogeocd.png"
+extensions = ["chd", "cue"]
+aliases = ["snk - neo geo cd", "neogeocdjp"]   # neogeocdjp: la carpeta de ES-DE
+
+[[system]]
+id = "satellaview"
+maker = "Nintendo"
+year = 1995
+name = "Nintendo Satellaview"
+label = "SATELLAV"
+raName = "Nintendo - Satellaview"   # nombre No-Intro, lo usa el scraper
+raCore = "snes9x"
+zipOk = true
+image = "systems/satellaview.png"
+extensions = [
+  "bml", "bs", "bsx", "dx2", "fig", "gb", "gbc", "gd3", "gd7", "rom", "sfc", "smc",
+  "st", "swc",
+]
+aliases = ["nintendo satellaview", "nintendo - satellaview"]
+
+[[system]]
+id = "palm"
+name = "Palm OS"
+label = "PALM"
+raCore = "mu"
+zipOk = false
+image = "systems/palm.png"
+extensions = ["img", "pdb", "pqa", "prc"]
+aliases = ["palm os"]
+
+[[system]]
+id = "cdi"
+maker = "Philips"
+year = 1991
+name = "Philips CD-i"
+label = "CDI"
+raCore = "same_cdi"
+zipOk = false
+image = "systems/cdi.png"
+extensions = ["cue", "chd", "iso"]
+aliases = ["philips cd-i", "cdimono1"]   # cdimono1: la carpeta de ES-DE
+
+[[system]]
+id = "g7400"
+maker = "Philips"
+year = 1983
+name = "Philips Videopac+ G7400"
+label = "G7400"
+raName = "Philips - Videopac+"   # nombre No-Intro, lo usa el scraper
+raCore = "o2em"
+zipOk = true
+image = "systems/g7400.png"
+extensions = ["bin"]
+aliases = ["philips videopac+ g7400", "philips - videopac+"]
+
+[[system]]
+id = "pokemini"
+maker = "Nintendo"
+year = 2001
+name = "Pokemon Mini"
+label = "POKEMINI"
+raName = "Nintendo - Pokemon Mini"   # nombre No-Intro, lo usa el scraper
+raCore = "pokemini"
+zipOk = true
+image = "systems/pokemini.png"
+extensions = ["min"]
+aliases = ["pokemon mini", "nintendo - pokemon mini"]
+
+[[system]]
+id = "quake"
+maker = "id Software"
+year = 1996
+name = "Quake Game Engine"
+label = "QUAKE"
+raName = "Quake"   # nombre No-Intro, lo usa el scraper
+raCore = "tyrquake"
+zipOk = false
+image = "systems/quake.png"
+extensions = ["pak"]
+aliases = ["quake game engine"]
+
+[[system]]
+id = "quake2"
+maker = "id Software"
+year = 1997
+name = "Quake II Game Engine"
+label = "QUAKE2"
+raName = "Quake II"   # nombre No-Intro, lo usa el scraper
+raCore = "vitaquake2"
+zipOk = false
+image = "systems/quake2.png"
+extensions = ["pak"]
+aliases = ["quake ii game engine", "quake ii"]
+
+[[system]]
+id = "rpgmaker"
+name = "RPG Maker"
+label = "RPGMAKER"
+raName = "RPG Maker"   # nombre No-Intro, lo usa el scraper
+raCore = "easyrpg"
+zipOk = true
+image = "systems/rpgmaker.png"
+extensions = ["easyrpg", "ldb"]
+
+[[system]]
+id = "scummvm"
+name = "ScummVM"
+label = "SCUMMVM"
+raName = "ScummVM"   # nombre No-Intro, lo usa el scraper
+raCore = "scummvm"
+zipOk = false
+image = "systems/scummvm.png"
+extensions = ["dpt", "sh", "svm", "scummvm"]
+
+[[system]]
+id = "sg1000"
+maker = "Sega"
+year = 1983
+name = "Sega SG-1000"
+label = "SG1000"
+raName = "Sega - SG-1000"   # nombre No-Intro, lo usa el scraper
+raCore = "gearsystem"
+zipOk = true
+image = "systems/sg1000.png"
+extensions = [
+  "sms", "gg", "sg", "bin", "rom", "cas", "col", "dsk", "m3u", "mx1", "mx2", "ri",
+  "sc",
+]
+aliases = ["sega sg-1000", "sega - sg-1000"]
+
+[[system]]
+id = "x1"
+maker = "Sharp"
+year = 1982
+name = "Sharp X1"
+label = "X1"
+raName = "Sharp - X1"   # nombre No-Intro, lo usa el scraper
+raCore = "x1"
+zipOk = true
+image = "systems/x1.png"
+extensions = ["2hd", "88d", "d88", "dim", "dup", "hdf", "hdm", "img", "m3u", "xdf"]
+aliases = ["sharp x1", "sharp - x1"]
+
+[[system]]
+id = "x68000"
+maker = "Sharp"
+year = 1987
+name = "Sharp X68000"
+label = "X68000"
+raName = "Sharp - X68000"   # nombre No-Intro, lo usa el scraper
+raCore = "px68k"
+zipOk = true
+image = "systems/x68000.png"
+extensions = ["2hd", "88d", "d88", "dim", "dup", "hdf", "hdm", "img", "m3u", "xdf"]
+aliases = ["sharp x68000", "sharp - x68000"]
+
+[[system]]
+id = "tic80"
+specs = ["SCREEN|240x136 16 col", "SOUND|4 channels", "CODE|64 KB"]
+name = "TIC-80"
+label = "TIC80"
+raName = "TIC-80"   # nombre No-Intro, lo usa el scraper
+raCore = "tic80"
+zipOk = false
+image = "systems/tic80.png"
+extensions = ["tic"]
+
+[[system]]
+id = "triforce"
+name = "Triforce"
+label = "TRIFORCE"
+zipOk = false
+image = "systems/triforce.png"
+extensions = ["gcz", "iso", "wia", "gcm"]
+
+[[system]]
+id = "uzebox"
+name = "Uzebox"
+label = "UZEBOX"
+raName = "Uzebox"   # nombre No-Intro, lo usa el scraper
+raCore = "uzem"
+zipOk = true
+image = "systems/uzebox.png"
+extensions = ["uze"]
+
+[[system]]
+id = "vectrex"
+maker = "GCE"
+year = 1982
+videoSnaps = "GCEVectrexVideoSnaps"   # coleccion de videos de partida en archive.org
+name = "Vectrex"
+label = "VECTREX"
+raName = "GCE - Vectrex"   # nombre No-Intro, lo usa el scraper
+raCore = "vecx"
+zipOk = true
+image = "systems/vectrex.png"
+extensions = ["bin", "vec"]
+aliases = ["gce - vectrex"]
+
+[[system]]
+id = "vic20"
+maker = "Commodore"
+year = 1980
+name = "VIC-20"
+label = "VIC20"
+raName = "Commodore - VIC-20"   # nombre No-Intro, lo usa el scraper
+raCore = "vice_xvic"
+zipOk = true
+image = "systems/vic20.png"
+extensions = [
+  "d64", "d71", "d80", "d81", "d82", "g64", "g41", "x64", "t64", "tap", "prg", "p00",
+  "crt", "bin", "gz", "d6z", "d7z", "d8z", "g6z", "g4z", "x6z", "m3u", "vfl", "vsf",
+  "nib", "nbz", "d2m", "d4m", "20", "40", "60", "a0", "b0", "rom",
+]
+aliases = ["commodore - vic-20"]
+
+[[system]]
+id = "wasm4"
+name = "WASM-4"
+label = "WASM4"
+raName = "WASM-4"   # nombre No-Intro, lo usa el scraper
+raCore = "wasm4"
+zipOk = false
+image = "systems/wasm4.png"
+extensions = ["wasm"]
+
+[[system]]
+id = "supervision"
+maker = "Watara"
+year = 1992
+name = "Watara Supervision"
+label = "SUPERVIS"
+raName = "Watara - Supervision"   # nombre No-Intro, lo usa el scraper
+raCore = "potator"
+zipOk = true
+image = "systems/supervision.png"
+extensions = ["bin", "sv"]
+aliases = ["watara supervision", "watara - supervision"]
+
+[[system]]
+id = "zx81"
+maker = "Sinclair"
+year = 1981
+name = "ZX 81"
+label = "ZX81"
+raName = "Sinclair - ZX 81"   # nombre No-Intro, lo usa el scraper
+raCore = "81"
+zipOk = true
+image = "systems/zx81.png"
+extensions = ["p", "t81", "tzx"]
+aliases = ["sinclair - zx 81"]
+
+[[system]]
+id = "zxspectrum"
+maker = "Sinclair"
+year = 1982
+name = "ZX Spectrum"
+label = "ZXSPECTR"
+raName = "Sinclair - ZX Spectrum"   # nombre No-Intro, lo usa el scraper
+raCore = "fuse"
+zipOk = true
+image = "systems/zxspectrum.png"
+extensions = ["dsk", "rzx", "scl", "tap", "trd", "tzx", "z80"]
+aliases = ["sinclair - zx spectrum"]
+
+
+# Los juegos de Android instalados como apps.
+#
+# No tiene extensiones y por eso el escaneo nunca la toca: sus «juegos» no son ficheros
+# sino paquetes, y quien decide cuales entran es el menu del cajon de apps. El giro es el
+# telefono que rinde tools/psx-apps.sh.
+[[system]]
+id = "android"
+maker = "Google"
+year = 2008
+name = "Android games"
+label = "ANDROID"
+video = "apps/phone.mp4"
+description = "Games installed as Android apps. Send one here from the app drawer, holding A on it."
+extensions = []

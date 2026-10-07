@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La gema de un solo tono, para los iconos tematicos de Android 13, que la tinen con el color del
+  sistema.
+
+  De un tono, una forma rellena dentro de otra se funde en una mancha. Por eso el ojo va en HUECO
+  y la pupila vuelve a sumarse dentro, igual que en el libro del Parlour (ver ReckoningMark): con
+  evenOdd, la gema llena, el rombo vacio y la pupila llena otra vez.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="37.91"
+        android:translateY="25.99"
+        android:scaleX="0.05354"
+        android:scaleY="0.05354">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M300,0 L601,416 L300.5,1046.5 L0,416 Z M300.36,591.59 L497.86,474.7 L298.35,337.66 L88.75,468.65 Z M365.5,474.2 L346.5,500.7 L300.5,511.7 L254.5,500.7 L235.5,474.2 L254.5,447.7 L300.5,436.7 L346.5,447.7 Z" />
+    </group>
+</vector>

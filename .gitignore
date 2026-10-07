@@ -1,0 +1,17 @@
+# Gradle y el IDE
+.gradle/
+.kotlin/
+build/
+app/build/
+.idea/
+*.iml
+local.properties
+
+# Firma: nunca en el repositorio
+keystore.properties
+*.jks
+*.keystore
+
+# Fuera del repositorio publico
+jump-re/
+tools/catalog/data/

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 601 1046">
+  <!--
+    El emblema del Companion en el tema Gallery: una gema con un ojo dentro.
+
+    Es el dibujo que hiciste, adaptado a lo que el programa sabe leer. Cuatro cambios y ninguno
+    de forma:
+
+    1. La pupila era una `ellipse` y el lector NO entiende elipses — solo `path`, `polygon` y
+       `polyline`. Se habria caido justo lo que hace que el ojo sea un ojo. Va ahora como un
+       octogono inscrito en la misma elipse (radios 65 y 37,5 contra los 63 y 36,32 de
+       origen, que es lo que compensa el area que pierde un poligono frente a su curva). A la
+       escala a la que se dibuja no se distingue de una elipse, y ademas rima con el resto:
+       todo lo demas de esta gema son rectas.
+
+    2. Los trazados venian en forma compacta —`m-5-15.46,1,1043,300-627`, numeros negativos
+       pegados y lineas implicitas despues de un moveto— que es lo que exporta un programa de
+       dibujo y lo que un lector sencillo no tiene por que aguantar. Reescritos con un punto
+       por vertice.
+
+    3. El `translate` de los dos trazados esta aplicado a mano, y las tres `line` de guia
+       —sin relleno— fuera. Lo que no pinta, sobra.
+
+    4. La pupila lleva id="cut", que es como el programa sabe que es un hueco. En la version
+       sombreada —la fila del Companion— se pinta con su gris, oscura como se dice abajo. En
+       la silueta de un color —la tarjeta que asoma encima del juego— se recorta: un solo
+       tono no tiene otra forma de decir «aqui hay algo mas oscuro», y pintada encima se
+       fundia con la mesa y la gema salia ciega. El agujero deja ver el fondo de la
+       tarjeta, que es oscuro, asi que la pupila sigue siendo oscura tambien alli.
+
+    Los cinco grises NO se usan como color: el programa saca de cada uno su claridad y la
+    vuelve a montar con el acento del tema. Lo que se guarda aqui es la luz, no el color, y
+    por eso hay cinco y no uno: cara al foco, cara en sombra, y la pupila mas apagada que el
+    iris, que es lo que la hace mirar.
+
+    Y por eso la pupila va OSCURA aqui y CLARA en la chapa del Mainframe. Alli el ojo
+    esta troquelado sobre una pantalla de fosforo y lo que se ve por el hueco es luz; aqui es
+    una piedra mirada de frente, y una pupila que brilla no es una pupila.
+  -->
+  <defs>
+    <style>
+      .clara  { fill: #fcfcfc; }
+      .media  { fill: #d6d6d6; }
+      .canto  { fill: #c1c1c1; }
+      .sombra { fill: #686868; }
+      .pupila { fill: #424242; }
+    </style>
+  </defs>
+
+  <!-- Las dos mitades de la gema: la de la luz y la del canto. -->
+  <polygon class="canto" points="300,0 301,1043 601,416"/>
+  <polygon class="clara" points="301,1043 0,416 300,0"/>
+
+  <!-- Las dos caras de abajo, que es lo que le da fondo a la punta. -->
+  <polygon class="sombra" points="300.4,592.7 600.5,416.5 300.5,1045.5"/>
+  <polygon class="canto" points="300.6,593.7 0.5,417.5 300.5,1046.5"/>
+
+  <!-- El ojo: el rombo de la mesa, y la pupila encima. La pupila es HUECO (id="cut"): en
+       la version sombreada se pinta con su gris, y en la silueta de un color se recorta. -->
+  <polygon class="media" points="300.36,591.59 497.86,474.7 298.35,337.66 88.75,468.65"/>
+  <polygon id="cut" class="pupila" points="365.5,474.2 346.5,500.7 300.5,511.7 254.5,500.7 235.5,474.2 254.5,447.7 300.5,436.7 346.5,447.7"/>
+</svg>

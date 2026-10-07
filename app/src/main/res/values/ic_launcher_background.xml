@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- El casi negro de los banners: el rojo de la gema pide un fondo que no compita. -->
+    <color name="ic_launcher_background">#FF151515</color>
+</resources>

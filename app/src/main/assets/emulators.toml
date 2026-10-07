@@ -1,0 +1,469 @@
+# Emuladores como plantillas de intent.
+#
+# Cada [[emulator]] dice como se le entrega un juego a una app. Para anadir
+# uno nuevo, copia el bloque de otro parecido y cambia pkg y activity.
+#
+# hand:  DATA_URI    el juego va en el data del intent, como content://
+#        EXTRA_PATH  la ruta absoluta, en el extra que diga extraKey
+#        EXTRA_URI   un content://, en el extra que diga extraKey
+
+[[emulator]]
+id = "duckstation"
+label = "DuckStation"
+pkg = "com.github.stenzek.duckstation"
+activity = "com.github.stenzek.duckstation.EmulationActivity"
+hand = "EXTRA_PATH"
+extraKey = "bootPath"
+
+[[emulator]]
+id = "ppsspp"
+label = "PPSSPP"
+pkg = "org.ppsspp.ppsspp"
+activity = "org.ppsspp.ppsspp.PpssppActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+mimeType = "application/octet-stream"
+
+[[emulator]]
+id = "ppssppgold"
+label = "PPSSPP Gold"
+pkg = "org.ppsspp.ppssppgold"
+activity = "org.ppsspp.ppsspp.PpssppActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+mimeType = "application/octet-stream"
+
+[[emulator]]
+id = "myboy"
+label = "My Boy!"
+pkg = "com.fastemulator.gba"
+activity = "com.fastemulator.gba.EmulatorActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "myoldboy"
+label = "My OldBoy!"
+pkg = "com.fastemulator.gbc"
+activity = "com.fastemulator.gbc.EmulatorActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "drastic"
+label = "DraStic"
+pkg = "com.dsemu.drastic"
+activity = "com.dsemu.drastic.DraSticActivity"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "melonds"
+label = "melonDS"
+pkg = "me.magnum.melonds"
+activity = "me.magnum.melonds.ui.emulator.EmulatorActivity"
+action = "me.magnum.melonds.LAUNCH_ROM"
+hand = "EXTRA_URI"
+extraKey = "uri"
+
+[[emulator]]
+id = "watermelonds"
+label = "WatermelonDS"
+pkg = "me.magnum.melondualds"
+activity = "me.magnum.melonds.ui.emulator.EmulatorActivity"
+action = "me.magnum.melonds.LAUNCH_ROM"
+hand = "EXTRA_URI"
+extraKey = "uri"
+
+[[emulator]]
+id = "mupenfz"
+label = "Mupen64Plus FZ"
+pkg = "org.mupen64plusae.v3.fzurita"
+activity = "paulscode.android.mupen64plusae.SplashActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "cemu"
+label = "Cemu"
+pkg = "info.cemu.cemu"
+activity = "info.cemu.cemu.emulation.EmulationActivity"
+hand = "EXTRA_PATH"
+extraKey = "info.cemu.cemu.LaunchPath"
+
+[[emulator]]
+id = "redream"
+label = "Redream"
+pkg = "io.recompiled.redream"
+activity = "io.recompiled.redream.MainActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "flycast"
+label = "Flycast"
+pkg = "com.flycast.emulator"
+activity = "com.flycast.emulator.MainActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "azahar"
+label = "Azahar"
+pkg = "org.azahar_emu.azahar"
+activity = "org.citra.citra_emu.activities.EmulationActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "citrammj"
+label = "Citra MMJ"
+pkg = "org.citra.emu"
+activity = "org.citra.emu.ui.EmulationActivity"
+hand = "EXTRA_PATH"
+extraKey = "GamePath"
+
+[[emulator]]
+id = "pico8app"
+label = "PICO-8"
+pkg = "io.wip.pico8"
+activity = "com.godot.game.GodotAppLauncher"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "infinity"
+label = "Infinity"
+pkg = "me.dt2dev.infinity"
+activity = "me.dt2dev.infinity.SchemeActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "armsx2"
+label = "ARMSX2"
+pkg = "com.armsx2"
+activity = "com.armsx2.BootSplashActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "nethersx2"
+label = "NetherSX2 / AetherSX2"
+pkg = "xyz.aethersx2.android"
+activity = "xyz.aethersx2.android.EmulationActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_PATH"
+extraKey = "bootPath"
+
+[[emulator]]
+id = "nethersx2turnip"
+label = "NetherSX2 Turnip"
+pkg = "xyz.aethersx2.tturnip"
+activity = "xyz.aethersx2.android.EmulationActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_PATH"
+extraKey = "bootPath"
+
+[[emulator]]
+id = "aethersx2turnip"
+label = "AetherSX2 Turnip"
+pkg = "xyz.aethersx2.custom"
+activity = "xyz.aethersx2.android.EmulationActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_PATH"
+extraKey = "bootPath"
+
+[[emulator]]
+id = "emucorex"
+label = "EmuCoreX"
+pkg = "com.sbro.emucorex"
+activity = "com.sbro.emucorex.MainActivity"
+action = "com.sbro.emucorex.action.LAUNCH_GAME"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "hakux"
+label = "hakuX"
+pkg = "com.rfandango.haku_x"
+activity = "com.rfandango.haku_x.LauncherActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "x1box"
+label = "X1 BOX"
+pkg = "com.izzy2lost.x1box"
+activity = "com.izzy2lost.x1box.LauncherActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "xendroid"
+label = "XenDroid"
+pkg = "xendroid.compose"
+activity = "xendroid.compose.EmulatorHostActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "armsx3"
+label = "ARMSX3"
+pkg = "com.armsx3"
+activity = "com.armsx2.Main"
+hand = "EXTRA_PATH"
+extraKey = "path"
+
+[[emulator]]
+id = "vita3kplus"
+label = "Vita3K+"
+pkg = "org.vita3kplus.emulator"
+activity = "org.vita3k.emulator.Emulator"
+# Vita3K no abre ficheros: arranca un juego instalado por su numero de titulo. Ver Hand.
+hand = "TITLE_ARGS"
+extraKey = "AppStartParameters"
+
+[[emulator]]
+id = "vita3k"
+label = "Vita3K"
+pkg = "org.vita3k.emulator"
+activity = "org.vita3k.emulator.Emulator"
+hand = "TITLE_ARGS"
+extraKey = "AppStartParameters"
+
+[[emulator]]
+id = "yabasanshiro"
+label = "Yaba Sanshiro 2"
+pkg = "org.devmiyax.yabasanshioro2"
+activity = "org.uoyabause.android.Yabause"
+action = "android.intent.action.VIEW"
+hand = "EXTRA_URI"
+extraKey = "org.uoyabause.android.FileNameUri"
+
+[[emulator]]
+id = "mame4droid"
+label = "MAME4droid 2024"
+pkg = "com.seleuco.mame4d2024"
+activity = "com.seleuco.mame4droid.MAME4droid"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+# Con su accion y el numero de la tienda, que es lo que lleva dentro un .steam. Asi lo lee
+# GameNative (IntentLaunchManager.parseLaunchIntent): app_id como entero y game_source como
+# texto, STEAM si falta. Entregandole el fichero por URI solo se abria su biblioteca.
+[[emulator]]
+id = "gamenative"
+label = "GameNative"
+pkg = "app.gamenative"
+activity = "app.gamenative.MainActivity"
+action = "app.gamenative.LAUNCH_GAME"
+hand = "FILE_INT"
+extraKey = "app_id"
+sourceExtra = "game_source"
+
+[[emulator]]
+id = "gamehub"
+label = "GameHub Lite"
+pkg = "gamehub.lite"
+activity = "com.xj.landscape.launcher.ui.gamedetail.GameDetailActivity"
+action = "gamehub.lite.LAUNCH_GAME"
+# El id de la tienda como texto, con su clave segun el fichero, y que arranque solo: sin
+# autoStartGame abria la ficha del juego y ahi se quedaba. Visto en JUMP y en Daijisho.
+hand = "STORE_ID"
+idExtras = ["steam:steamAppId", "gamehub:localGameId"]
+boolExtras = ["autoStartGame"]
+
+[[emulator]]
+id = "winlator"
+label = "Winlator (Cmod builds)"
+pkg = "com.winlator.cmod"
+altPkgs = ["com.cmodded.winlator"]   # forks que aceptan el mismo intent
+activity = "com.winlator.cmod.XServerDisplayActivity"
+hand = "EXTRA_PATH"
+extraKey = "shortcut_path"
+
+[[emulator]]
+id = "eden"
+label = "Eden"
+pkg = "dev.eden.eden_emulator"
+activity = "org.yuzu.yuzu_emu.activities.EmulationActivity"
+# La accion es la de NFC y no VIEW: es la que su EmulationActivity atiende para abrir un
+# juego que le llega de fuera, segun su propia guia para front-ends (docs/user/ThirdParty.md).
+# Con VIEW arrancaba, no encontraba que abrir y salia («saliendo»).
+action = "android.nfc.action.TECH_DISCOVERED"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "citron"
+label = "Citron"
+pkg = "org.citron.citron_emu"
+activity = "org.citron.citron_emu.activities.EmulationActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "yuzu"
+label = "Yuzu"
+pkg = "org.yuzu.yuzu_emu"
+activity = "org.yuzu.yuzu_emu.activities.EmulationActivity"
+action = "android.intent.action.VIEW"
+hand = "DATA_URI"
+
+[[emulator]]
+id = "dolphin"
+label = "Dolphin"
+pkg = "org.dolphinemu.dolphinemu"
+altPkgs = ["org.dolphinemu.handheld"]   # forks que aceptan el mismo intent
+activity = "org.dolphinemu.dolphinemu.ui.main.MainActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_URI"
+extraKey = "AutoStartFile"
+
+[[emulator]]
+id = "mmjr2"
+label = "Dolphin MMJR2"
+pkg = "org.dolphinemu.mmjr"
+activity = "org.dolphinemu.dolphinemu.ui.main.MainActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_URI"
+extraKey = "AutoStartFile"
+
+[[emulator]]
+id = "mmjr3"
+label = "Dolphin MMJR3"
+pkg = "org.dolphinemu.mmjr3"
+altPkgs = ["org.mm.j"]   # forks que aceptan el mismo intent
+activity = "org.dolphinemu.dolphinemu.ui.main.MainActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_URI"
+extraKey = "AutoStartFile"
+
+[[emulator]]
+id = "mmjr"
+label = "Dolphin MMJR"
+pkg = "org.mm.jr"
+activity = "org.dolphinemu.dolphinemu.ui.main.MainActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_URI"
+extraKey = "AutoStartFile"
+
+[[emulator]]
+id = "ishiiruka"
+label = "Dolphin Ishiiruka"
+pkg = "org.dolphin.ishiirukadark"
+activity = "org.dolphinemu.dolphinemu.ui.main.MainActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_URI"
+extraKey = "AutoStartFile"
+
+[[emulator]]
+id = "retroarch"
+label = "RetroArch"
+pkg = "com.retroarch.aarch64"
+altPkgs = ["com.retroarch"]   # forks que aceptan el mismo intent
+activity = "com.retroarch.browser.retroactivity.RetroActivityFuture"
+kind = "retroarch"
+romExtra = "ROM"
+coreExtra = "LIBRETRO"
+configExtra = "CONFIGFILE"
+corePath = "/data/data/{pkg}/cores/{core}_libretro_android.so"
+configPath = "/storage/emulated/0/Android/data/{pkg}/files/retroarch.cfg"
+
+[[emulator]]
+id = "primehack"
+label = "PrimeHack"
+pkg = "org.dolphinemu.primehack"
+activity = "org.dolphinemu.dolphinemu.ui.main.MainActivity"
+action = "android.intent.action.MAIN"
+hand = "EXTRA_URI"
+extraKey = "AutoStartFile"
+
+# Que emuladores sirven para cada consola, en orden de preferencia.
+# RetroArch va el ultimo a proposito: sirve para casi todo, pero cuando hay
+# un emulador dedicado ese suele ir mejor.
+[bySystem]
+psx = ["duckstation", "retroarch"]
+psp = ["ppsspp", "ppssppgold", "retroarch"]
+gba = ["myboy", "retroarch"]
+gb = ["myoldboy", "retroarch"]
+gbc = ["myoldboy", "retroarch"]
+nds = ["drastic", "melonds", "watermelonds", "retroarch"]
+n64 = ["mupenfz", "retroarch"]
+wiiu = ["cemu"]
+dreamcast = ["redream", "flycast", "retroarch"]
+3ds = ["azahar", "citrammj", "retroarch"]
+pico8 = ["pico8app", "infinity"]
+ps2 = ["armsx2", "nethersx2", "nethersx2turnip", "aethersx2turnip", "emucorex"]
+xbox = ["hakux", "x1box"]
+xbox360 = ["xendroid"]
+ps3 = ["armsx3"]
+psvita = ["vita3kplus", "vita3k"]
+saturn = ["yabasanshiro", "retroarch"]
+arcade = ["mame4droid", "retroarch"]
+pc = ["gamenative", "gamehub", "winlator"]
+switch = ["eden", "citron", "yuzu"]
+gamecube = ["dolphin", "primehack", "mmjr3", "mmjr2", "mmjr", "ishiiruka"]
+wii = ["dolphin", "primehack", "mmjr3", "mmjr2", "mmjr", "ishiiruka"]
+nes = ["retroarch"]
+snes = ["retroarch"]
+virtualboy = ["retroarch"]
+megadrive = ["retroarch"]
+mastersystem = ["retroarch"]
+gamegear = ["retroarch"]
+segacd = ["retroarch"]
+sega32x = ["retroarch"]
+pcengine = ["retroarch"]
+pcenginecd = ["retroarch"]
+neogeo = ["retroarch"]
+ngp = ["retroarch"]
+ngpc = ["retroarch"]
+wonderswan = ["retroarch"]
+wonderswancolor = ["retroarch"]
+atari2600 = ["retroarch"]
+atari5200 = ["retroarch"]
+atari7800 = ["retroarch"]
+lynx = ["retroarch"]
+c64 = ["retroarch"]
+amiga = ["retroarch"]
+colecovision = ["retroarch"]
+3do = ["retroarch"]
+cpc = ["retroarch"]
+arduboy = ["retroarch"]
+jaguar = ["retroarch"]
+atarist = ["retroarch"]
+atomiswave = ["retroarch"]
+bbcmicro = ["retroarch"]
+chip8 = ["retroarch"]
+pet = ["retroarch"]
+plus4 = ["retroarch"]
+doom = ["retroarch"]
+dos = ["retroarch"]
+channelf = ["retroarch"]
+intellivision = ["retroarch"]
+j2me = ["retroarch"]
+lowresnx = ["retroarch"]
+odyssey2 = ["retroarch"]
+megaduck = ["retroarch"]
+msx = ["retroarch"]
+pc88 = ["retroarch"]
+pc98 = ["retroarch"]
+pcfx = ["retroarch"]
+neogeocd = ["retroarch"]
+satellaview = ["retroarch"]
+palm = ["retroarch"]
+cdi = ["retroarch"]
+g7400 = ["retroarch"]
+pokemini = ["retroarch"]
+quake = ["retroarch"]
+quake2 = ["retroarch"]
+rpgmaker = ["retroarch"]
+scummvm = ["retroarch"]
+sg1000 = ["retroarch"]
+x1 = ["retroarch"]
+x68000 = ["retroarch"]
+tic80 = ["retroarch"]
+uzebox = ["retroarch"]
+vectrex = ["retroarch"]
+vic20 = ["retroarch"]
+wasm4 = ["retroarch"]
+supervision = ["retroarch"]
+zx81 = ["retroarch"]
+zxspectrum = ["retroarch"]

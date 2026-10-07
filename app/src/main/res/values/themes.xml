@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      La ventana: la de Material sin barra, la de siempre. Tiene nombre propio solo para que la
+      bienvenida de Android 12 en adelante lleve el fondo del icono (ver values-v31).
+    -->
+    <style name="Ludolog" parent="@android:style/Theme.Material.NoActionBar" />
+</resources>

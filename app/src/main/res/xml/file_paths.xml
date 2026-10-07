@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- ROMs live on shared storage and, on these handhelds, usually on a removable card,
+         so the provider is configured over the storage roots rather than the app's own
+         private directory. -->
+    <root-path name="root" path="/" />
+    <external-path name="external" path="." />
+</paths>

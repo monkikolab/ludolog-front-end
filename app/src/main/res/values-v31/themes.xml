@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Desde Android 12 el sistema ensena el icono en grande mientras arranca el programa, sobre el
+      fondo de la ventana: un gris de Material que no es de nadie. Con el casi negro del icono, la
+      bienvenida del sistema y la entrada del programa (ver Intro) se leen como una sola cosa.
+    -->
+    <style name="Ludolog" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+    </style>
+</resources>

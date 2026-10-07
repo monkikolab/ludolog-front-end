@@ -1,0 +1,21 @@
+# Datos descargados y resultados: se regeneran con los scripts.
+ldb/
+gtdb/
+wd/
+art/
+steam/
+pulled/
+library.idx
+inventory.txt
+discid.tsv
+extra.tsv
+systems.json
+report.json
+report.tsv
+tree.json
+matrix.json
+coverage.json
+wdcoverage.json
+wdcoverage.txt
+wdcoverage.err
+wdplatforms.tsv

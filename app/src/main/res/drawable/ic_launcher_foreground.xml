@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  El icono: la gema con el ojo, la cara del Companion, en rojo.
+
+  Es el mismo dibujo que companion.svg del Gallery, con sus mismas coordenadas (601 x 1046) y
+  una escala encima, para que el icono y el emblema no puedan irse cada uno por su lado.
+
+  Mide 56 dp de alto en una capa de 108. Lo que la mascara del lanzador garantiza que se ve es un
+  circulo de 66 dp en el centro, y la gema es alta y estrecha: sus puntas son lo mas lejano del
+  centro y con 56 quedan a 28, con aire para que ninguna forma de mascara muerda la punta.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="37.91"
+        android:translateY="25.99"
+        android:scaleX="0.05354"
+        android:scaleY="0.05354">
+        <!-- Las dos mitades: la del canto y la de la luz. -->
+        <path android:fillColor="#A3232A" android:pathData="M300,0 L301,1043 L601,416 Z" />
+        <path android:fillColor="#E25A5E" android:pathData="M301,1043 L0,416 L300,0 Z" />
+        <!-- Las dos caras de abajo, que dan fondo a la punta. -->
+        <path android:fillColor="#4E0D10" android:pathData="M300.4,592.7 L600.5,416.5 L300.5,1045.5 Z" />
+        <path android:fillColor="#A3232A" android:pathData="M300.6,593.7 L0.5,417.5 L300.5,1046.5 Z" />
+        <!-- El ojo: el rombo de la mesa y la pupila. -->
+        <path android:fillColor="#C83A40" android:pathData="M300.36,591.59 L497.86,474.7 L298.35,337.66 L88.75,468.65 Z" />
+        <path android:fillColor="#1C0507" android:pathData="M365.5,474.2 L346.5,500.7 L300.5,511.7 L254.5,500.7 L235.5,474.2 L254.5,447.7 L300.5,436.7 L346.5,447.7 Z" />
+    </group>
+</vector>

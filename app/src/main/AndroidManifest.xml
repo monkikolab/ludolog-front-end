@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Scanning arbitrary ROM folders means reading paths the user picked, anywhere on
+         shared storage. SAF cannot walk a tree fast enough for libraries of thousands. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+
+    <!-- The scraper fetches box art over HTTPS. -->
+    <!-- Uninstalling is handed to Android; this only lets the request through. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Para colgar el ecualizador del reproductor del panel y que suene a cinta. -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- El cuaderno de partidas mide mientras se juega, y mientras se juega este front-end
+         esta detras del emulador. En segundo plano Android deja de darnos hilo a los pocos
+         segundos, asi que las medidas tienen que tomarse desde un servicio en primer plano.
+         No hace falta acceso al uso: el front-end sabe que lanzo, y sabe cuando se vuelve. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- La tarjeta de "se esta apuntando" se dibuja encima del emulador, que es la unica
+         pantalla que hay delante mientras se juega. Es opcional a proposito: sin el permiso
+         no hay tarjeta, pero la partida se apunta igual. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Solo una app firmada con la misma clave —Ludolog Link— puede pedirle cosas al puente.
+         Link declara el mismo permiso: asi da igual cual de las dos se instale primero.
+         Contrato en docs/ludolog-link.md. -->
+    <permission
+        android:name="com.felp.frontcomp.permission.LINK"
+        android:protectionLevel="signature" />
+    <!-- Y la usa ella misma para avisar a Link (COMPANION_CHANGED): solo Link lo oye. -->
+    <uses-permission android:name="com.felp.frontcomp.permission.LINK" />
+
+    <!-- Needed to resolve which emulators are installed when launching a game. -->
+    <!-- Instalar Ludolog Link desde la bienvenida (LinkInstaller). Android pregunta igual antes. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <queries>
+        <!-- Ludolog Link, si esta: la pregunta de las partidas antes de jugar (LinkSaveCheck). -->
+        <provider android:authorities="com.felp.ludologlink.savecheck" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <!-- LudologApp dice donde esta la carpeta de datos antes de que nada la pida. -->
+    <application
+        android:name=".LudologApp"
+        android:label="${appLabel}"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:largeHeap="true"
+        android:supportsRtl="true"
+        android:theme="@style/Ludolog">
+
+        <!--
+          singleTask: una sola, siempre la misma. Como app de inicio, el boton de casa la trae de
+          vuelta tal como estaba en vez de abrir otra encima, y volver de un juego es volver a la
+          misma lista.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!--
+              Y como app de inicio, si se elige: con esto aparece en la lista de Android de apps
+              de inicio y se puede pedir desde Ajustes → Interface → Home app. Ver HomeApp.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <!--
+          Los accesos que una app ancla en la pantalla de inicio (GameHub, «Add to home screen»),
+          cuando la de inicio es Ludolog. Sin esto GameHub decia que faltaba un permiso para crear
+          accesos. Ver PinShortcut.kt.
+        -->
+        <activity
+            android:name=".PinShortcutActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.content.pm.action.CONFIRM_PIN_SHORTCUT" />
+            </intent-filter>
+        </activity>
+        <!-- Emulators receive the ROM as a content:// URI they are granted access to. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Mide mientras se juega y escribe el cuaderno. `specialUse` porque no encaja en
+             ninguna de las categorias de Android: no es musica, ni localizacion, ni una
+             descarga. Es un registro del propio aparato mientras el usuario juega. -->
+        <service
+            android:name=".SessionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Records the playing session it launched: time, battery, heat and frames." />
+        </service>
+
+        <!-- El puente con Ludolog Link: ROMs renombrados y cambios en la biblioteca desde el PC.
+             Exportado, pero solo para quien tenga el permiso de firma. Ver LinkBridge y
+             docs/ludolog-link.md. -->
+        <receiver
+            android:name=".LinkBridge"
+            android:exported="true"
+            android:permission="com.felp.frontcomp.permission.LINK">
+            <intent-filter>
+                <action android:name="com.felp.frontcomp.link.LIBRARY_CHANGED" />
+                <action android:name="com.felp.frontcomp.link.MOVED" />
+                <action android:name="com.felp.frontcomp.link.CONFIG_CHANGED" />
+                <action android:name="com.felp.frontcomp.link.RESTORE" />
+                <action android:name="com.felp.frontcomp.link.MEDIA_CHANGED" />
+                <action android:name="com.felp.frontcomp.link.STATE" />
+                <action android:name="com.felp.frontcomp.link.EDITS_IN" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

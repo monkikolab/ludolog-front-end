@@ -1,0 +1,47 @@
+# Televisores del panel.
+#
+# Copiar a <unidad>/Ludolog/tvs.toml y reiniciar la app.
+#
+# Cada entrada describe un mueble de televisor prerenderizado y DÓNDE está su pantalla,
+# para que el vídeo se coloque dentro. Renderizar la tele una vez y animar solo la pantalla
+# es lo que hace esto barato: una imagen sirve para las noventa consolas.
+
+# OJO con el id: el panel dibuja la entrada que se llama "drawn", y solo esa. El de las
+# demas es una etiqueta —las salas se eligen por su forma, no por su nombre—, asi que para
+# que el televisor de abajo se vea hay que llamarlo "drawn". Ver el bloque del final.
+
+[[tv]]
+id = "portable-crt"
+name = "CRT de 14 pulgadas"
+
+# Ruta relativa a cualquier carpeta de medios (la misma lista que el arte de consolas),
+# o absoluta. PNG con transparencia si la tele no es rectangular.
+image = "tv/portable-crt.png"
+
+# Opcional: se dibuja ENCIMA del vídeo. Para el reflejo del cristal, polvo o arañazos.
+# Va en un fichero aparte porque el vídeo tiene que quedar entre el mueble y el cristal,
+# y una sola imagen no puede estar delante y detrás a la vez.
+overlay = "tv/portable-crt-glass.png"
+
+# Ancho dividido por alto de la imagen. Si no cuadra, la tele sale estirada.
+aspect = 1.30
+
+# Dónde está la pantalla dentro de la imagen: x, y, ancho, alto, en fracción de 0 a 1.
+#
+# Para sacarlos: abre el render en cualquier editor, mira el rectángulo del hueco de la
+# pantalla en píxeles y divide entre el tamaño de la imagen. Si la tele mide 1300x1000 y
+# la pantalla va de (110, 70) a (1190, 845):
+#     x = 110/1300 = 0.085     ancho = 1080/1300 = 0.831
+#     y = 70/1000  = 0.070     alto  = 775/1000  = 0.775
+screen = [0.085, 0.070, 0.831, 0.775]
+
+
+# Un id repetido sustituye al anterior. "drawn" es el que trae la app dibujado por código,
+# así que declararlo aquí lo reemplaza sin tocar nada más.
+#
+# [[tv]]
+# id = "drawn"
+# name = "Mi tele"
+# image = "tv/mia.png"
+# aspect = 1.42
+# screen = [0.10, 0.08, 0.80, 0.70]
