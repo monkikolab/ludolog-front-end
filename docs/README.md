@@ -7,7 +7,13 @@ Requirements: JDK 21 and the Android SDK (API 37).
 ```bash
 ./gradlew assembleDebug          # the APK, in app/build/outputs/apk/debug/
 ./gradlew testDebugUnitTest      # the unit tests
+./gradlew assembleDev            # Ludolog Dev, to try changes next to the installed Ludolog
 ```
+
+**Ludolog Dev** is a separate app (package `com.felp.frontcomp.dev`, debug key) with its own data
+folder, `LudologDev`. It is never the home app, and it talks only to Link Dev (`assembleDev` in
+ludolog-link), so a device can keep the official Ludolog and Link while you test. To try a first
+install, clear its data and delete its folder.
 
 A release build needs your own signing key, in a `keystore.properties` file at the root of the
 repository (it is ignored by git):

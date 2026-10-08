@@ -152,14 +152,14 @@ internal object Logbooks {
 
     // ------------------------------------------------------------------ importar
 
-    /** Por que no salio el ultimo «Import logbook», para su fila en Ajustes; nulo si salio o no hubo. */
-    val importError = androidx.compose.runtime.mutableStateOf<String?>(null)
-
     /** El ID en el nombre de un cuaderno: «c050» en «Retroid Pocket 5-c050.db». */
     private val ID_IN_NAME = Regex("""-([A-Za-z0-9]{4})(?: \(\d+\))?\.db$""")
 
+    /** Lo que quedo al importar: el nombre del cuaderno en la carpeta y cuantas partidas trae. */
+    class Imported(val name: String, val sessions: Int)
+
     /**
-     * Hace del cuaderno [name], leido de [input], el de esta consola (Ajustes → Companion → Import
+     * Hace del cuaderno [name], leido de [input], el de esta consola (opciones del Companion → Import
      * logbook; idea del usuario, 07-10-2026): quien elige un cuaderno lo da por suyo, y la consola
      * hereda su ID. Para cuando cambia la huella de [owner] —otra clave de firma, o el aparato
      * restablecido—, que abre un cuaderno nuevo y deja el de siempre como si fuera de otra consola;
@@ -171,13 +171,17 @@ internal object Logbooks {
      * queda. Bloquea; despues hay que reabrir el programa (restartApp).
      */
     @Synchronized
-    fun adopt(input: java.io.InputStream, name: String): Result<String> = runCatching {
+    fun adopt(input: java.io.InputStream, name: String): Result<Imported> = runCatching {
+        // Al lado de cada cuaderno puede haber su fichero de paso de SQLite, vacio, con casi el mismo
+        // nombre; en un selector de ficheros se confunden. Se dice cual hay que elegir.
+        if (Regex(""".db-(journal|wal|shm)$""").containsMatchIn(name))
+            error("that is the logbook's scratch file, not the logbook: pick ${name.substringBefore(".db-")}.db, next to it")
         val id = ID_IN_NAME.find(name)?.groupValues?.get(1)?.lowercase()
             ?: error("its name doesn't say which console it is, like «Retroid Pocket 5-c050.db»")
         val tmp = File(DataHome.work(), "import-logbook.db")
         try {
             input.use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
-            sessions(tmp) ?: error("it is not a Companion logbook")
+            val count = sessions(tmp) ?: error("it is not a Companion logbook")
             val current = own()
             val dest = File(dir, fileName(model(), id))
             when {
@@ -195,35 +199,27 @@ internal object Logbooks {
             prefs.consoleOwner = owner(DataHome.context)
             cached = null
             cachedFor = null
-            dest.name
+            Imported(dest.name, count)
         } finally {
             tmp.delete()
         }
     }
 
-    /** Lo que dijo el ultimo «Export logbook», para su fila en Ajustes. */
-    val exportNote = androidx.compose.runtime.mutableStateOf<String?>(null)
-
     /**
-     * Una copia del cuaderno de esta consola en Download, con su nombre y por tanto su ID: para
-     * guardarla o llevarla a otro aparato, y volver a traerla con [adopt]. Desde Ajustes no hay
-     * partida en curso, asi que el fichero esta entero. Devuelve donde quedo. Bloquea.
+     * Una copia del cuaderno de esta consola en [to], el sitio que se eligio en el selector de
+     * Android (abre en Download; pedido del usuario, 07-10-2026: antes iba siempre ahi). Con su
+     * nombre y por tanto su ID: para guardarla o llevarla a otro aparato, y volver a traerla con
+     * [adopt]. Desde las opciones del Companion no hay partida en curso, asi que el fichero esta
+     * entero. Devuelve el nombre con que quedo. Bloquea.
      */
-    fun export(ctx: Context): Result<String> = runCatching {
+    fun export(ctx: Context, to: android.net.Uri): Result<String> = runCatching {
         val f = own()
         if (!f.isFile) error("there is no logbook yet")
-        val values = android.content.ContentValues().apply {
-            put(android.provider.MediaStore.Downloads.DISPLAY_NAME, f.name)
-            put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/octet-stream")
-            put(android.provider.MediaStore.Downloads.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
-        }
         val r = ctx.contentResolver
-        val uri = r.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: error("Download is not available")
-        r.openOutputStream(uri).use { out -> f.inputStream().use { it.copyTo(out ?: error("Download is not available")) } }
-        // El nombre con que quedo: con uno igual ya en Download, Android le suma « (1)».
-        val name = r.query(uri, arrayOf(android.provider.MediaStore.Downloads.DISPLAY_NAME), null, null, null)
+        r.openOutputStream(to, "wt").use { out -> f.inputStream().use { it.copyTo(out ?: error("that place can't be written")) } }
+        // El nombre con que quedo: el selector puede haberle sumado « (1)» si ya habia uno igual.
+        r.query(to, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { c -> if (c.moveToFirst()) c.getString(0) else null } ?: f.name
-        "Download/$name"
     }
 
     /** Cuantas partidas tiene un cuaderno, o nulo si no es uno. */

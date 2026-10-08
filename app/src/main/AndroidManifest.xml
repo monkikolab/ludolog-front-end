@@ -28,13 +28,14 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Solo una app firmada con la misma clave —Ludolog Link— puede pedirle cosas al puente.
-         Link declara el mismo permiso: asi da igual cual de las dos se instale primero.
+         Link declara el mismo permiso: asi da igual cual de las dos se instale primero. Lleva el
+         nombre del paquete: Ludolog Dev tiene el suyo y no se cruza con la oficial.
          Contrato en docs/ludolog-link.md. -->
     <permission
-        android:name="com.felp.frontcomp.permission.LINK"
+        android:name="${applicationId}.permission.LINK"
         android:protectionLevel="signature" />
     <!-- Y la usa ella misma para avisar a Link (COMPANION_CHANGED): solo Link lo oye. -->
-    <uses-permission android:name="com.felp.frontcomp.permission.LINK" />
+    <uses-permission android:name="${applicationId}.permission.LINK" />
 
     <!-- Needed to resolve which emulators are installed when launching a game. -->
     <!-- Instalar Ludolog Link desde la bienvenida (LinkInstaller). Android pregunta igual antes. -->
@@ -42,7 +43,7 @@
 
     <queries>
         <!-- Ludolog Link, si esta: la pregunta de las partidas antes de jugar (LinkSaveCheck). -->
-        <provider android:authorities="com.felp.ludologlink.savecheck" />
+        <provider android:authorities="${linkPackage}.savecheck" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -128,7 +129,7 @@
         <receiver
             android:name=".LinkBridge"
             android:exported="true"
-            android:permission="com.felp.frontcomp.permission.LINK">
+            android:permission="${applicationId}.permission.LINK">
             <intent-filter>
                 <action android:name="com.felp.frontcomp.link.LIBRARY_CHANGED" />
                 <action android:name="com.felp.frontcomp.link.MOVED" />

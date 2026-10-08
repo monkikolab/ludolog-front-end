@@ -14,8 +14,8 @@ its broadcasts reach no one, and nothing else changes.
 
 ## Same signing key
 
-Both apps declare the permission `com.felp.frontcomp.permission.LINK` with `signature`
-protection. Ludolog's receiver (`LinkBridge.kt`) only accepts broadcasts from an app that holds it,
+Both apps declare the permission `<Ludolog's package>.permission.LINK` (`com.felp.frontcomp.permission.LINK`)
+with `signature` protection. Ludolog's receiver (`LinkBridge.kt`) only accepts broadcasts from an app that holds it,
 and Ludolog sends its own broadcasts only to Link's package, with that permission. Android grants a
 signature permission only to apps signed with the same key, so **Ludolog and Link must be signed
 with the same key** to talk to each other. It doesn't matter which one is installed first.
@@ -67,7 +67,9 @@ applied the next time Ludolog starts.
 - `EDITS_CHANGED`: the user corrected a game's or console's info.
 
 Ludolog also asks Link questions directly through Link's content provider
-(`com.felp.ludologlink.savecheck`): the save check before playing, and whether Link is listening.
+(`<Link's package>.savecheck`): the save check before playing, and whether Link is listening.
+The development builds (Ludolog Dev, Link Dev) use their own packages, so they only talk to each
+other.
 If the system stopped Link's background service, Ludolog wakes it when it comes back to the
 foreground, since Android lets the app on screen start it.
 

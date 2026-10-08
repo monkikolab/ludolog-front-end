@@ -22,8 +22,8 @@ import java.io.File
  */
 internal object LinkEdits {
     private const val KEEP = 2000
-    private const val LINK_PACKAGE = "com.felp.ludologlink"
-    private const val PERMISSION = "com.felp.frontcomp.permission.LINK"
+    private const val LINK_PACKAGE = BuildConfig.LINK_PACKAGE
+    private const val PERMISSION = BuildConfig.APPLICATION_ID + ".permission.LINK"
     const val ACTION_EDITS_CHANGED = "com.felp.frontcomp.link.EDITS_CHANGED"
 
     /** Una correccion de un juego hecha aqui. */

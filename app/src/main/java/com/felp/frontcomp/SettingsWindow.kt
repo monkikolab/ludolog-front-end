@@ -52,7 +52,6 @@ private sealed interface Pane {
     data object HiddenApps : Pane
     data object Accent : Pane
     data object ArtSources : Pane
-    data object Overlay : Pane
     data object Levels : Pane
     data object Shortcuts : Pane
     data class ShortcutPick(val action: com.felp.frontcomp.Shortcuts.Action) : Pane
@@ -94,7 +93,6 @@ internal fun SettingsWindow(
             is Pane.HiddenApps -> Pane.Root
             is Pane.Accent -> Pane.Root
             is Pane.ArtSources -> Pane.Root
-            is Pane.Overlay -> Pane.Root
             is Pane.Levels -> Pane.Root
             is Pane.Shortcuts -> Pane.Root
             is Pane.ShortcutPick -> Pane.Shortcuts
@@ -125,7 +123,6 @@ internal fun SettingsWindow(
                     "hiddenapps" -> Pane.HiddenApps
                     "accent" -> Pane.Accent
                     "artsources" -> Pane.ArtSources
-                    "overlay" -> Pane.Overlay
                     "levels" -> Pane.Levels
                     "shortcuts" -> Pane.Shortcuts
                     "about" -> Pane.About
@@ -146,7 +143,6 @@ internal fun SettingsWindow(
             is Pane.HiddenApps -> HiddenAppsPane(vm)
             is Pane.Accent -> AccentPane()
             is Pane.ArtSources -> ArtSourcesPane(vm)
-            is Pane.Overlay -> OverlayPane(vm)
             is Pane.Levels -> LevelsPane(vm)
             is Pane.Shortcuts -> ShortcutsPane(vm) { pane = Pane.ShortcutPick(it) }
             is Pane.ShortcutPick -> ShortcutPickPane(vm, p.action) { pane = Pane.Shortcuts }
@@ -185,34 +181,13 @@ private fun ColumnScope.RootPane(
     val home = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
     ) { HomeApp.refresh(ctx) }
-    // Un cuaderno de fichero para hacerlo el de esta consola (Logbooks.adopt). Si sale, se reabre el
-    // programa, que tiene abierto el de antes; si no, la fila dice por que.
-    val logbookPicker = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        kotlin.concurrent.thread(name = "logbook-import") {
-            val name = runCatching {
-                ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-                    ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
-            }.getOrNull() ?: uri.lastPathSegment.orEmpty().substringAfterLast('/')
-            val r = runCatching { ctx.contentResolver.openInputStream(uri) ?: error("it could not be read") }
-                .mapCatching { Logbooks.adopt(it, name).getOrThrow() }
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                Logbooks.importError.value = r.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
-                if (r.isSuccess) restartApp(ctx)
-            }
-        }
-    }
     val tabs = remember(
         revision, vm.result, vm.art, vm.busy, vm.catalog, HomeApp.held,
         LinkSaveCheck.present.value, LinkInstaller.status.value, LinkInstaller.lastError.value,
-        Logbooks.importError.value, Logbooks.exportNote.value,
     ) {
         SettingsModel.build(
             ctx, vm, onClose, onBright = toBright,
             onHome = { runCatching { home.launch(HomeApp.intent(ctx)) } },
-            onImportLogbook = { runCatching { logbookPicker.launch(arrayOf("*/*")) } },
         ) {
             vm.loadCatalog { n -> ctx.assets.open(n).bufferedReader().use { it.readText() } }
         }
@@ -688,47 +663,6 @@ private fun ColumnScope.ShortcutPickPane(
                     else -> ""
                 },
                 dimmed = b != now && taken[b] != null,
-            )
-        }
-    }
-}
-
-/**
- * Lo que la tarjeta ensena encima del emulador.
- *
- * Es la unica pantalla de este programa que se configura a ciegas: lo que se enciende aqui
- * no se ve hasta la siguiente partida, y para entonces ya no hay forma de volver. Por eso
- * cada linea explica en la descripcion lo que pondria, palabra por palabra.
- */
-@Composable
-private fun ColumnScope.OverlayPane(vm: LibraryViewModel) {
-    var revision by remember { mutableStateOf(0) }
-    val items = remember(revision) { SettingsModel.overlayItems(vm.prefs) }
-    var selected by remember { mutableStateOf(0) }
-    val sel = selected.coerceIn(0, items.lastIndex)
-
-    WindowFrame(
-        title = "SESSION CARD",
-        subtitle = if (vm.prefs.overlay) "on" else "off",
-        description = items.getOrNull(sel)?.description.orEmpty(),
-        hint = "A  change      B  back",
-    ) {
-        ModalRows(
-            count = items.size,
-            selected = sel,
-            onSelect = { selected = it },
-            onActivate = {
-                when (val item = items.getOrNull(sel)) {
-                    is SettingItem.Toggle -> { item.onChange(!item.on); revision++ }
-                    else -> Unit
-                }
-            },
-        ) { index ->
-            val item = items[index]
-            ModalRow(
-                label = item.title,
-                value = item.value,
-                dimmed = item is SettingItem.Action,
             )
         }
     }

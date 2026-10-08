@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
@@ -86,7 +89,12 @@ fun Modifier.padItem(
     shape: RoundedCornerShape = RoundedCornerShape(8.dp),
 ): Modifier = composed {
     val interaction = remember { MutableInteractionSource() }
-    val focused by interaction.collectIsFocusedAsState()
+    // El marco sigue al foco de verdad, no solo al aviso de foco. Cuando el foco llega con la
+    // ventana tapada (CONTINUE al volver del instalador de Android), Compose no manda el aviso:
+    // la fila tenia el foco y respondia a A, pero salia sin marcar (07-10-2026).
+    val announced by interaction.collectIsFocusedAsState()
+    var held by remember { mutableStateOf(false) }
+    val focused = announced || held
     val scale by animateFloatAsState(if (focused) scaleWhenFocused else 1f, label = "focusScale")
     val ring = borderColor ?: LocalTheme.current.accent
     // Y por encima de lo que pida quien llama: con una ventana delante no se navega nada de
@@ -121,6 +129,7 @@ fun Modifier.padItem(
             if (event.type == KeyEventType.KeyUp && !event.nativeKeyEvent.isCanceled) onActivate()
             true
         }
+        .onFocusChanged { held = it.isFocused }
         .focusable(enabled = on, interactionSource = interaction)
         .scale(scale)
         .then(if (focused) Modifier.border(borderWidth, ring, shape) else Modifier)

@@ -1,5 +1,9 @@
 package com.felp.frontcomp
 
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.composed
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -8,7 +12,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -252,14 +255,17 @@ private fun ExtrasStep(onDone: () -> Unit) {
     }
     val published = l.catalog
     val catalogSize = published?.let { GameDb.sizeFor(it, l.systems) }
+    // Cuantas consolas cubre el catalogo publicado, no cuantas hay en la biblioteca (pedido del
+    // usuario, 07-10-2026): es lo que dice lo que trae. Se bajan las que hay; las demas, al llegar.
+    val catalogConsoles = published?.flatMap { it.systems }?.toSet()?.size
     val cs = state[CATALOG] ?: GET
     DownloadRow(
         "GAME CATALOG",
         when {
-            cs == HAVE -> "Already on this device, for the consoles in your library."
+            cs == HAVE -> "On this device." + (catalogConsoles?.let { " Game info for $it consoles." } ?: "")
             cs.startsWith(FAILED) -> "It did not arrive: ${cs.removePrefix(FAILED)}. Press to try again."
             catalogSize != null && l.systems.isNotEmpty() ->
-                "${mb(catalogSize)} for the ${l.systems.size} consoles in your library."
+                "Game info for ${catalogConsoles} consoles. ${mb(catalogSize)}."
             published != null -> "Nothing to download yet: there are no games in your ROM folders."
             else -> "Not available now${l.catalogWhy?.let { ": $it" } ?: ""}. It comes down on its own when it can."
         },
@@ -325,7 +331,7 @@ private fun DownloadRow(
     Row(
         Modifier.padding(vertical = 3.dp).widthIn(min = 560.dp, max = 640.dp)
             .padItem(onActivate = onGet, focusRequester = requester)
-            .clickable { onGet() }
+            .tap { onGet() }
             .padding(horizontal = 22.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -465,10 +471,14 @@ private fun LinkStep(onDone: () -> Unit) {
             if (f == null) failed = "That file is not Ludolog Link." else { found = f; failed = null }
         }
     }
+    // El APK que espera el permiso de instalar apps: al volver con el concedido, se instala solo.
+    // Antes la fila seguia diciendo «Allow Ludolog to install apps» hasta pulsarla otra vez.
+    var pending by remember { mutableStateOf<LinkInstaller.Found?>(null) }
     fun install(f: LinkInstaller.Found) {
         if (f.problem != null) return
-        // Android pide antes dejar a Ludolog instalar apps; se vuelve y se pulsa otra vez.
+        // Android pide antes dejar a Ludolog instalar apps.
         if (!LinkInstaller.allowed(ctx)) {
+            pending = f
             runCatching { ctx.startActivity(LinkInstaller.allowSettings(ctx).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             return
         }
@@ -476,6 +486,9 @@ private fun LinkStep(onDone: () -> Unit) {
             val r = withContext(Dispatchers.IO) { LinkInstaller.install(ctx, f.file) }
             failed = r.exceptionOrNull()?.let { "It could not be opened: ${why(it)}" }
         }
+    }
+    LaunchedEffect(Grants.installs) {
+        if (Grants.installs) pending?.let { pending = null; install(it) }
     }
     Ask(
         "LUDOLOG LINK",
@@ -494,7 +507,7 @@ private fun LinkStep(onDone: () -> Unit) {
                     "INSTALL LUDOLOG LINK",
                     when {
                         f.problem != null -> "${f.file.name}: ${f.problem}."
-                        !LinkInstaller.allowed(ctx) -> "$what. Allow Ludolog to install apps, then press again."
+                        !Grants.installs -> "$what. Android asks first to let Ludolog install apps: allow it and come back."
                         else -> "$what. ${size(f.file.length())}."
                     },
                     GET, available = f.problem == null, first = true,
@@ -544,12 +557,15 @@ internal object Grants {
     var files by mutableStateOf(hasStorage()); private set
     var notifications by mutableStateOf(false); private set
     var overlay by mutableStateOf(false); private set
+    /** Instalar apps (Ludolog Link desde la bienvenida): ver LinkInstaller.allowed. */
+    var installs by mutableStateOf(false); private set
 
     fun refresh(ctx: Context) {
         files = hasStorage()
         notifications = runCatching { NotificationManagerCompat.from(ctx).areNotificationsEnabled() }
             .getOrDefault(false)
         overlay = runCatching { Settings.canDrawOverlays(ctx) }.getOrDefault(false)
+        installs = LinkInstaller.allowed(ctx)
     }
 
     fun notificationSettings(ctx: Context): Intent =
@@ -825,7 +841,7 @@ private fun Permission(
     Row(
         Modifier.padding(vertical = 3.dp).widthIn(min = 560.dp, max = 640.dp)
             .padItem(onActivate = onOpen, focusRequester = requester)
-            .clickable { onOpen() }
+            .tap { onOpen() }
             .padding(horizontal = 22.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -868,7 +884,7 @@ private fun Choice(
     Column(
         Modifier.padding(vertical = 3.dp).widthIn(min = 520.dp)
             .padItem(onActivate = onPick, focusRequester = requester, enabled = enabled)
-            .clickable(enabled = enabled) { onPick() }
+            .tap(enabled) { onPick() }
             .padding(horizontal = 22.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -882,3 +898,14 @@ private fun Choice(
 private fun size(bytes: Long): String =
     if (bytes >= 1L shl 30) "%.0f GB".format(bytes / (1L shl 30).toDouble())
     else "%.0f MB".format(bytes / (1L shl 20).toDouble())
+
+/**
+ * Tocar sin hacer el elemento enfocable. `clickable` lo hace por su cuenta, y sumado al de
+ * padItem quedaban dos nodos de foco por fila: al volver del instalador de Android el foco caia en
+ * el de clickable, que no dibuja nada, y CONTINUE respondia a A sin verse marcado (07-10-2026). Es
+ * lo mismo que ya hacian las filas del menu (ver MenuRow).
+ */
+private fun Modifier.tap(enabled: Boolean = true, onTap: () -> Unit): Modifier = composed {
+    val latest = rememberUpdatedState(onTap)
+    if (!enabled) Modifier else Modifier.pointerInput(Unit) { detectTapGestures { latest.value() } }
+}

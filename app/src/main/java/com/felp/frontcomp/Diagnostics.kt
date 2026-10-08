@@ -74,7 +74,7 @@ internal object Diagnostics {
         appendLine("Locale: ${Locale.getDefault()}, time zone: ${java.util.TimeZone.getDefault().id}")
         appendLine("Theme: ${prefs.themeId}")
         appendLine("Data folder: ${runCatching { DataHome.dir.path }.getOrDefault("?")}")
-        val link = runCatching { pm.getPackageInfo("com.felp.ludologlink", 0).versionName }.getOrNull()
+        val link = runCatching { pm.getPackageInfo(BuildConfig.LINK_PACKAGE, 0).versionName }.getOrNull()
         appendLine("Ludolog Link: ${link ?: "not installed"}")
         appendLine()
         if (library == null) appendLine("Library: not scanned yet")

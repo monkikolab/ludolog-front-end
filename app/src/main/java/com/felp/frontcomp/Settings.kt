@@ -104,8 +104,6 @@ object SettingsModel {
         onBright: (Boolean) -> Unit = {},
         /** Abre lo de Android para hacer de Ludolog la app de inicio, o dejar de serlo. */
         onHome: () -> Unit = {},
-        /** Abre el selector de ficheros para «Import logbook» (ver Logbooks.adopt). */
-        onImportLogbook: () -> Unit = {},
         onReload: () -> Unit,
     ): List<SettingsTab> {
         val prefs = vm.prefs
@@ -116,7 +114,6 @@ object SettingsModel {
         val sound = mutableListOf<SettingItem>()
         val library = mutableListOf<SettingItem>()
         val artwork = mutableListOf<SettingItem>()
-        val companion = mutableListOf<SettingItem>()
         val data = mutableListOf<SettingItem>()
 
         // Lo que depende del tema va delante en su pestana: en la de la interfaz, el video del
@@ -301,77 +298,20 @@ object SettingsModel {
         )
 
         // El cuaderno se puede apagar entero. Apagado no apunta y no se abre: dejar la
-        // pantalla accesible y vacia seria peor que no tenerla.
-        companion += SettingItem.Toggle(
+        // pantalla accesible y vacia seria peor que no tenerla. Es lo unico suyo que queda en los
+        // ajustes del front-end, porque apagado no hay donde entrar a encenderlo: lo demas —la
+        // tarjeta, la partida mas corta, exportar e importar el cuaderno— esta en las opciones del
+        // propio Companion, Select o su engranaje (pedido del usuario, 07-10-2026).
+        iface += SettingItem.Toggle(
             title = "Companion",
             description = "The record of what you launch from here: how long, what it cost the " +
-                "battery, how hot it ran and how it went. L2 + R2 opens it.",
+                "battery, how hot it ran and how it went. L2 + R2 opens it; its options are inside, " +
+                "with Select or its gear.",
             on = prefs.logbook,
             onChange = {
                 prefs.logbook = it
                 if (it) kotlin.concurrent.thread { Logbooks.create() }
             },
-        )
-
-        // Exportar e importar el cuaderno, aqui con el Companion (pedido del usuario, 07-10-2026).
-        // Exportar deja una copia en Download con su nombre y su ID; importar hace de un cuaderno de
-        // fichero el de esta consola: el de antes de reinstalar (con otra clave de firma Android
-        // cambia la huella, y sin esto se abria uno nuevo) o el de otra consola. Ver Logbooks.
-        companion += SettingItem.Action(
-            title = "Export logbook",
-            description = "Save a copy of this console's own logbook in Download, to keep it or take " +
-                "it to another device. Import logbook brings it back. The logbooks of your other " +
-                "devices are not included: Ludolog Link brings those back when it syncs." +
-                (Logbooks.exportNote.value?.let { "\n$it" } ?: ""),
-            enabled = prefs.logbook,
-            run = {
-                kotlin.concurrent.thread(name = "logbook-export") {
-                    val r = Logbooks.export(ctx)
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        Logbooks.exportNote.value = r.fold({ "Saved to $it." }, { "It was not saved: ${it.message}." })
-                    }
-                }
-            },
-        )
-        companion += SettingItem.Action(
-            title = "Import logbook",
-            description = "Make a logbook file this console's own: the one it used before " +
-                "reinstalling Ludolog, or one from another device. It keeps that logbook's ID, and " +
-                "Ludolog restarts." +
-                (if (prefs.logbook) runCatching { " Now: ${Logbooks.own().name}." }.getOrDefault("") else "") +
-                (Logbooks.importError.value?.let { "\nLast try: it was not imported, $it." } ?: ""),
-            value = if (Logbooks.importError.value != null) "failed" else "",
-            enabled = prefs.logbook,
-            run = onImportLogbook,
-        )
-
-        // El cuaderno apunta lo que se lanza desde aqui, sin adivinar nada. Lo unico que hay
-        // que decidir es a partir de cuando algo cuenta como haber jugado.
-        companion += SettingItem.Action(
-            title = "Shortest session",
-            description = "Games closed sooner than this are not written down. Opening one by " +
-                "mistake is not playing, and loading is the hottest, priciest part of a game.",
-            value = prefs.minSessionSeconds.let {
-                when {
-                    it == 0 -> "keep all"
-                    it < 60 -> "${it}s"
-                    else -> "${it / 60} min"
-                }
-            },
-            run = {
-                val at = MIN_SESSION.indexOf(prefs.minSessionSeconds)
-                prefs.minSessionSeconds = MIN_SESSION[(if (at < 0) 0 else at + 1) % MIN_SESSION.size]
-            },
-        )
-
-        // Lo que la tarjeta dice se decide aparte: encima de un juego cada linea cuesta
-        // sitio, y lo que a uno le interesa al arrancar al siguiente le estorba.
-        companion += SettingItem.Submenu(
-            title = "Session card",
-            description = "The card that appears over the emulator when a game starts, and " +
-                "what it tells you about the game you just launched.",
-            id = "overlay",
-            value = if (prefs.overlay) "on" else "off",
         )
 
         // Los atajos, en su propia pantalla. Son seis y cada uno pide una frase para
@@ -485,13 +425,6 @@ object SettingsModel {
             lines = listOf(DataHome.dir.path),
         )
 
-        data += SettingItem.Info(
-            title = "Stored preferences",
-            description = "What the app remembers: chosen emulator, favourites and play counts.",
-            lines = prefs.dump().entries.take(24).map { "${it.key} = ${it.value}" }
-                .ifEmpty { listOf("nothing stored yet") },
-        )
-
         // Link, si no esta: lo baja de su pagina en GitHub y abre el instalador de Android. La
         // bienvenida decia que se podia instalar desde aqui, y no habia fila (07-10-2026).
         if (!LinkSaveCheck.present.value) data += SettingItem.Action(
@@ -557,7 +490,6 @@ object SettingsModel {
             SettingsTab("Library", library),
             SettingsTab("Catalog", catalogRows),
             SettingsTab("Artwork", artwork),
-            SettingsTab("Companion", companion),
             SettingsTab("Data", data),
         ).filter { it.items.isNotEmpty() }
     }
@@ -574,8 +506,6 @@ object SettingsModel {
     /** Esperas que ofrece la fila de retardo, en segundos. Cero enciende al momento. */
     private val DELAYS = listOf(0, 1, 2, 3, 5)
 
-    /** Lo minimo que dura algo para contar como partida, en segundos. Cero = apuntarlo todo. */
-    private val MIN_SESSION = listOf(60, 120, 300, 0, 30)
 
 
 

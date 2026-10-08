@@ -602,11 +602,11 @@ class Prefs(
      * dos partidas de prueba de menos de un minuto daban casi 500 mAh/h, que para un aparato
      * de mano es una barbaridad; era casi todo pantalla de carga.
      *
-     * RetroCompanion usa dos minutos. Aqui se arranca en uno: lo justo para tirar el lanzado
-     * por error sin que parezca que la aplicacion no apunta nada.
+     * RetroCompanion usa dos minutos. Aqui se arranca en cinco (pedido del usuario, 07-10-2026;
+     * era uno): lo que dura de verdad una partida, y se cambia en las opciones del Companion.
      */
     var minSessionSeconds: Int
-        get() = sp.getInt("log.minsession", 60)
+        get() = sp.getInt("log.minsession", 300)
         set(v) = sp.edit().putInt("log.minsession", v).apply()
 
     /**

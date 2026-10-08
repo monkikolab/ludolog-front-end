@@ -94,8 +94,8 @@ class LinkBridge : BroadcastReceiver() {
 
         /** De Ludolog A Link (al reves que las demas): el cuaderno de esta consola cambio. */
         const val ACTION_COMPANION_CHANGED = "com.felp.frontcomp.link.COMPANION_CHANGED"
-        private const val LINK_PACKAGE = "com.felp.ludologlink"
-        private const val PERMISSION = "com.felp.frontcomp.permission.LINK"
+        private const val LINK_PACKAGE = BuildConfig.LINK_PACKAGE
+        private const val PERMISSION = BuildConfig.APPLICATION_ID + ".permission.LINK"
         const val EXTRA_FROM = "from"
         const val EXTRA_TO = "to"
         const val EXTRA_PATHS = "paths"

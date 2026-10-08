@@ -28,7 +28,7 @@ import java.net.URL
  * permiso LINK es de firma), y nada avisaria de por que.
  */
 internal object LinkInstaller {
-    const val PACKAGE = "com.felp.ludologlink"
+    const val PACKAGE = BuildConfig.LINK_PACKAGE
     private const val APK = "application/vnd.android.package-archive"
 
     /** Un APK de Link en el aparato: donde esta, su version y si se puede instalar. */

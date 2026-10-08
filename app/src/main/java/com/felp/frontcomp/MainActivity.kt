@@ -285,6 +285,7 @@ class MainActivity : ComponentActivity() {
                 if (ready) Root() else DataSetup()
                 // Encima de todo, un momento: ver Intro.
                 Intro()
+                if (BuildConfig.DEV) DevBadge()
             }
         }
         muteSystemClicks()
@@ -1108,3 +1109,28 @@ internal fun SaveCheckWindow(vm: LibraryViewModel) {
 
 /** Sin tocar nada durante esto, el ambiente se calla: ver Sfx.rest. */
 private const val AMBIENCE_REST_MS = 3 * 60_000L
+
+/**
+ * Ludolog Dev: un «DEV» rojo arriba en el centro, encima de todo y en todos los temas, para no
+ * confundirla nunca con la oficial que esta al lado (pedido del usuario, 08-10-2026). No se come
+ * toques ni teclas: es solo un rotulo.
+ */
+@androidx.compose.runtime.Composable
+private fun DevBadge() {
+    androidx.compose.foundation.layout.Box(
+        androidx.compose.ui.Modifier.fillMaxSize(),
+        contentAlignment = androidx.compose.ui.Alignment.TopCenter,
+    ) {
+        androidx.compose.material3.Text(
+            "DEV",
+            color = androidx.compose.ui.graphics.Color(0xFFFF3B30),
+            fontSize = 11.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            letterSpacing = 2.sp,
+            // Pegado al borde de arriba: mas abajo tapaba las pistas de la cabecera del Companion.
+            modifier = androidx.compose.ui.Modifier.padding(top = 2.dp)
+                .background(androidx.compose.ui.graphics.Color(0xD9000000), androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                .padding(horizontal = 8.dp, vertical = 1.dp),
+        )
+    }
+}

@@ -30,14 +30,19 @@ android {
         // Sube con cada version que se instala.
         versionCode = appVersionCode
         versionName = appVersion
-        // Lo que cambia la copia de prueba (ver `fresh` abajo): la carpeta de datos, si trae lo
-        // de FrontComp, de donde baja catalogo y temas, y su nombre.
+        // Lo que cambia la version de desarrollo (ver `dev` abajo): la carpeta de datos, si trae lo
+        // de FrontComp, su nombre y que Link le habla.
         buildConfigField("String", "DATA_NAME", "\"Ludolog\"")
         buildConfigField("boolean", "IMPORT_LEGACY", "true")
+        // Ludolog Dev lleva un «DEV» rojo arriba, siempre a la vista (ver DevBadge en MainActivity).
+        buildConfigField("boolean", "DEV", "false")
         // El ultimo lanzamiento de monkikolab/ludolog-assets: catalogo y temas (26-09-2026). GitHub
         // redirige cada fichero a su almacen, y GameDb.get sigue la redireccion.
         buildConfigField("String", "RELEASES", "\"https://github.com/monkikolab/ludolog-assets/releases/latest/download\"")
         manifestPlaceholders["appLabel"] = "Ludolog"
+        // El Link de esta Ludolog: el oficial, o Link Dev en la version de desarrollo.
+        buildConfigField("String", "LINK_PACKAGE", "\"com.felp.ludologlink\"")
+        manifestPlaceholders["linkPackage"] = "com.felp.ludologlink"
     }
 
     if (hasSigning) {
@@ -56,19 +61,24 @@ android {
             isMinifyEnabled = false
             if (hasSigning) signingConfig = signingConfigs.getByName("release")
         }
-        // Una primera instalacion de verdad sin tocar la de siempre: otro paquete, su propia
-        // carpeta de datos, sin traer lo de FrontComp y sin hacer de app de inicio (ver
-        // src/fresh/AndroidManifest.xml). El catalogo y los temas los baja del release de verdad,
-        // como la normal (07-10-2026; antes, de una carpeta del aparato que hacia de repositorio).
+        // Ludolog Dev, para probar al lado de la oficial firmada (07-10-2026; reemplaza a la copia
+        // `fresh`): otro paquete, su propia carpeta de datos (LudologDev), sin traer lo de
+        // FrontComp, sin hacer de app de inicio (src/dev/AndroidManifest.xml) y hablando solo con
+        // Link Dev (`assembleDev` en ludolog-link/console). Su permiso LINK es el de su paquete, asi
+        // que ni ella ni Link Dev oyen a las oficiales, ni al reves. Una instalacion de cero se
+        // prueba borrando sus datos (pm clear) y su carpeta.
         //
-        //   ./gradlew assembleFresh
-        create("fresh") {
+        //   ./gradlew assembleDev
+        create("dev") {
             initWith(getByName("debug"))
-            applicationIdSuffix = ".fresh"
+            applicationIdSuffix = ".dev"
             matchingFallbacks += "debug"
-            buildConfigField("String", "DATA_NAME", "\"LudologFresh2\"")
+            buildConfigField("String", "DATA_NAME", "\"LudologDev\"")
             buildConfigField("boolean", "IMPORT_LEGACY", "false")
-            manifestPlaceholders["appLabel"] = "Ludolog Fresh"
+            buildConfigField("String", "LINK_PACKAGE", "\"com.felp.ludologlink.dev\"")
+            buildConfigField("boolean", "DEV", "true")
+            manifestPlaceholders["appLabel"] = "Ludolog Dev"
+            manifestPlaceholders["linkPackage"] = "com.felp.ludologlink.dev"
         }
     }
     compileOptions {

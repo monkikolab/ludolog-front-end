@@ -659,57 +659,159 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
  * pantalla, donde se ve lo que hacen. Select queda entonces libre para lo que no se puede
  * poner en una pestana: lo que vale para el cuaderno entero y no para la vista de hoy.
  *
- * Son los mismos valores que la pantalla de ajustes del front-end, no una copia. Quien esta
- * mirando el cuaderno y quiere callar la musica no deberia tener que salir, cruzar la sala y
- * entrar en Ajustes para encontrar la misma casilla.
+ * Desde el 07-10-2026 son TODOS los ajustes del Companion (pedido del usuario): la tarjeta de
+ * partida, la partida mas corta, exportar e importar el cuaderno, que estaban en una pestana de
+ * los ajustes del front-end. Alli queda solo el interruptor, porque apagado no se entra aqui. El
+ * sonido de la interfaz se quito de esta lista: lo manda el front-end para los dos.
  */
 @Composable
 private fun OptionsWindow(prefs: Prefs, onClose: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var revision by remember { mutableIntStateOf(0) }
-    val items = remember(revision) { logbookOptions(prefs) }
+    // La tarjeta de partida tiene su propia lista: lo que dice, linea por linea.
+    var card by remember { mutableStateOf(false) }
     var selected by remember { mutableIntStateOf(0) }
-    val sel = selected.coerceIn(0, items.lastIndex)
+    var cardSelected by remember { mutableIntStateOf(0) }
+    // Lo que paso al exportar o importar, en una ventana con su OK. En la descripcion de la fila
+    // no se veia: en la Odin se importo sin saber si habia salido (07-10-2026).
+    var notice by remember { mutableStateOf<Notice?>(null) }
+    val main = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
+
+    val exporter = androidx.activity.compose.rememberLauncherForActivityResult(PickPlaceToSave()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        kotlin.concurrent.thread(name = "logbook-export") {
+            val r = Logbooks.export(ctx, uri)
+            main.post {
+                notice = r.fold(
+                    { Notice("SAVED", "The logbook was saved as $it. Import logbook brings it back.") },
+                    { Notice("NOT SAVED", "The logbook was not saved: ${it.message ?: it.javaClass.simpleName}.") },
+                )
+            }
+        }
+    }
+    val importer = androidx.activity.compose.rememberLauncherForActivityResult(PickFile()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        kotlin.concurrent.thread(name = "logbook-import") {
+            val name = runCatching {
+                ctx.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            }.getOrNull() ?: uri.lastPathSegment.orEmpty().substringAfterLast('/')
+            val r = runCatching { ctx.contentResolver.openInputStream(uri) ?: error("it could not be read") }
+                .mapCatching { Logbooks.adopt(it, name).getOrThrow() }
+            main.post {
+                notice = r.fold(
+                    // Se reabre el programa, que tiene abierto el cuaderno de antes: con OK, o solo
+                    // a los pocos segundos, despues de haberlo dicho.
+                    { got ->
+                        val restart = { restartApp(ctx) }
+                        main.postDelayed(restart, 4_000)
+                        Notice(
+                            "IMPORTED",
+                            "${got.name}, with ${got.sessions} " + (if (got.sessions == 1) "session" else "sessions") +
+                                ", is now this console's logbook. Ludolog restarts to open it.",
+                            after = restart,
+                        )
+                    },
+                    { Notice("NOT IMPORTED", "That file was not imported: ${it.message ?: it.javaClass.simpleName}.") },
+                )
+            }
+        }
+    }
+
+    val n = notice
+    if (n != null) {
+        val close = { notice = null; n.after?.invoke(); Unit }
+        ModalWindow(onDismiss = close, widthFraction = 0.50f, heightFraction = 0.42f) {
+            WindowFrame(title = n.title, subtitle = "", description = n.text, hint = "A  OK      B  close") {
+                ModalRows(count = 1, selected = 0, onSelect = {}, onActivate = close) { ModalRow(label = "OK") }
+            }
+        }
+        return
+    }
+
+    val items = remember(revision, card) {
+        if (card) SettingsModel.overlayItems(prefs)
+        else logbookOptions(
+            prefs,
+            onCard = { card = true },
+            onExport = { runCatching { exporter.launch(Logbooks.own().name) } },
+            onImport = { runCatching { importer.launch(arrayOf("*/*")) } },
+        )
+    }
+    val sel = (if (card) cardSelected else selected).coerceIn(0, items.lastIndex)
 
     // Mas ancha de lo que pide la lista: el titulo entero cabe en una linea, y partido en
     // dos —«THE» arriba y «RECKONING» debajo— la ventana empezaba con un tropiezo.
-    ModalWindow(onDismiss = onClose, widthFraction = 0.60f, heightFraction = 0.78f) {
+    ModalWindow(onDismiss = { if (card) card = false else onClose() }, widthFraction = 0.60f, heightFraction = 0.78f) {
         WindowFrame(
             // El nombre sale de la constante y no escrito a mano: es lo que quedaba del nombre
             // viejo, y con dos sitios distintos el menu decia «Companion» y sus opciones «The
             // Reckoning», como si fueran dos herramientas.
-            title = COMPANION_NAME.uppercase(),
-            subtitle = "options",
+            title = if (card) "SESSION CARD" else COMPANION_NAME.uppercase(),
+            subtitle = if (card) (if (prefs.overlay) "on" else "off") else "options",
             description = items.getOrNull(sel)?.description.orEmpty(),
             hint = "A  change      B  back",
         ) {
             ModalRows(
                 count = items.size,
                 selected = sel,
-                onSelect = { selected = it },
+                onSelect = { if (card) cardSelected = it else selected = it },
                 onActivate = {
                     when (val item = items.getOrNull(sel)) {
                         is SettingItem.Toggle -> { item.onChange(!item.on); revision++ }
-                        is SettingItem.Action -> { item.run(); revision++ }
+                        is SettingItem.Action -> if (item.enabled) { item.run(); revision++ }
                         else -> Unit
                     }
                 },
             ) { index ->
-                ModalRow(label = items[index].title, value = items[index].value)
+                val item = items[index]
+                // En la tarjeta, las lineas que no salen mientras la tarjeta este apagada.
+                ModalRow(label = item.title, value = item.value, dimmed = card && item is SettingItem.Action)
             }
         }
     }
 }
 
+/** Un aviso con su OK: lo que paso al exportar o importar. [after], al cerrarlo. */
+private class Notice(val title: String, val text: String, val after: (() -> Unit)? = null)
+
+/**
+ * Donde guardar el cuaderno, con el selector de Android abierto en Download: es donde se
+ * buscaba antes, y desde ahi se puede ir a cualquier otro sitio.
+ */
+private class PickPlaceToSave : androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/octet-stream") {
+    override fun createIntent(context: android.content.Context, input: String) =
+        super.createIntent(context, input).putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI, DOWNLOAD_DIR)
+}
+
+/** Un fichero cualquiera, con el selector abierto tambien en Download. */
+private class PickFile : androidx.activity.result.contract.ActivityResultContracts.OpenDocument() {
+    override fun createIntent(context: android.content.Context, input: Array<String>) =
+        super.createIntent(context, input).putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI, DOWNLOAD_DIR)
+}
+
+/** La carpeta Download de la memoria interna, como la nombra el selector de Android. */
+private val DOWNLOAD_DIR: android.net.Uri = android.provider.DocumentsContract.buildDocumentUri(
+    "com.android.externalstorage.documents", "primary:Download",
+)
+
 /**
  * Lo que se puede decidir desde dentro del cuaderno.
  */
-private fun logbookOptions(prefs: Prefs): List<SettingItem> = listOf(
-    SettingItem.Toggle(
+private fun logbookOptions(
+    prefs: Prefs,
+    onCard: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+): List<SettingItem> = listOf(
+    // Lo que la tarjeta dice se decide aparte: encima de un juego cada linea cuesta sitio, y lo
+    // que a uno le interesa al arrancar al siguiente le estorba.
+    SettingItem.Action(
         title = "Session card",
-        description = "The card that appears over the emulator when a game starts. Off records " +
-            "exactly the same, just without saying so.",
-        on = prefs.overlay,
-        onChange = { prefs.overlay = it },
+        description = "The card that appears over the emulator when a game starts, and what it " +
+            "tells you about the game you just launched.",
+        value = if (prefs.overlay) "on ›" else "off ›",
+        run = onCard,
     ),
     SettingItem.Action(
         title = "Shortest session",
@@ -723,7 +825,7 @@ private fun logbookOptions(prefs: Prefs): List<SettingItem> = listOf(
             }
         },
         run = {
-            val steps = listOf(60, 120, 300, 0, 30)
+            val steps = listOf(300, 600, 0, 30, 60, 120)
             val at = steps.indexOf(prefs.minSessionSeconds)
             prefs.minSessionSeconds = steps[(if (at < 0) 0 else at + 1) % steps.size]
         },
@@ -757,12 +859,23 @@ private fun logbookOptions(prefs: Prefs): List<SettingItem> = listOf(
             prefs.bucketMs = steps[(if (at < 0) 0 else at + 1) % steps.size]
         },
     ),
-    SettingItem.Toggle(
-        title = "Sound effects",
-        description = "The clicks of moving through lists and opening things. Shared with the " +
-            "rest of the front-end.",
-        on = prefs.uiSound,
-        onChange = { prefs.uiSound = it; Sfx.uiOn = it },
+    // Exportar e importar el cuaderno (pedido del usuario, 07-10-2026). Exportar guarda una copia
+    // donde se elija, con su nombre y su ID; importar hace de un cuaderno de fichero el de esta
+    // consola: el de antes de reinstalar (con otra clave de firma Android cambia la huella, y sin
+    // esto se abria uno nuevo) o el de otra consola. Ver Logbooks.
+    SettingItem.Action(
+        title = "Export logbook",
+        description = "Save a copy of this console's own logbook wherever you choose (Download to " +
+            "start with), to keep it or take it to another device. The logbooks of your other " +
+            "devices are not included: Ludolog Link brings those back when it syncs.",
+        run = onExport,
+    ),
+    SettingItem.Action(
+        title = "Import logbook",
+        description = "Make a logbook file this console's own: the one it used before " +
+            "reinstalling Ludolog, or one from another device. It keeps that logbook's ID, and " +
+            "Ludolog restarts." + runCatching { " Now: ${Logbooks.own().name}." }.getOrDefault(""),
+        run = onImport,
     ),
 )
 

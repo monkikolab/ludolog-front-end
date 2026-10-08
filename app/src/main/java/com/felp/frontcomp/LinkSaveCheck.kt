@@ -12,7 +12,7 @@ import android.os.Bundle
  * si no contesta a tiempo, Ludolog lanza como siempre. Ver docs/ludolog-link.md.
  */
 object LinkSaveCheck {
-    private const val AUTHORITY = "com.felp.ludologlink.savecheck"
+    private const val AUTHORITY = BuildConfig.LINK_PACKAGE + ".savecheck"
 
     /**
      * ok · synced (la trajo) · stale (la hay, pero [peer] no contesta) · conflict (cambio en los dos) ·
@@ -72,7 +72,7 @@ object LinkSaveCheck {
      */
     private fun wake(ctx: Context) = runCatching {
         ctx.startForegroundService(android.content.Intent("com.felp.ludologlink.WAKE")
-            .setClassName("com.felp.ludologlink", "com.felp.ludologlink.LinkService"))
+            .setClassName(BuildConfig.LINK_PACKAGE, "com.felp.ludologlink.LinkService"))
     }
 
     /** Lo que dijo Link de si mismo. En el hilo principal. */
@@ -107,13 +107,13 @@ object LinkSaveCheck {
 
     /** Abre Ludolog Link en su pestaña de partidas, con los conflictos a la vista. */
     fun openLink(ctx: Context) = runCatching {
-        ctx.startActivity(android.content.Intent().setClassName("com.felp.ludologlink", "com.felp.ludologlink.MainActivity")
+        ctx.startActivity(android.content.Intent().setClassName(BuildConfig.LINK_PACKAGE, "com.felp.ludologlink.MainActivity")
             .putExtra("tab", "saves").putExtra("conflicts", true).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     /** Abre Ludolog Link tal cual, desde su entrada en la lista de consolas. */
     fun openHome(ctx: Context) = runCatching {
-        ctx.startActivity(android.content.Intent().setClassName("com.felp.ludologlink", "com.felp.ludologlink.MainActivity")
+        ctx.startActivity(android.content.Intent().setClassName(BuildConfig.LINK_PACKAGE, "com.felp.ludologlink.MainActivity")
             .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }

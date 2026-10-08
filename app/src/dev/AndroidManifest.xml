@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  La copia de prueba no se ofrece como app de inicio: instalada al lado de la de siempre, Android
-  no tiene que preguntar cual abrir con el boton de casa.
+  Ludolog Dev no se ofrece como app de inicio: instalada al lado de la oficial, Android no tiene que
+  preguntar cual abrir con el boton de casa.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
