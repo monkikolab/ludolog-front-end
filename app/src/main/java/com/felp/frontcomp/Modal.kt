@@ -377,6 +377,17 @@ internal fun ModalRows(
             refocus = true
         }
     }
+    // Si la lista se acorta (una fila que se quito, como «show again» en las apps ocultas), el foco
+    // vuelve a una fila: se quedaba en ninguna, A no hacia nada y B cerraba la ventana entera en vez
+    // de volver un nivel (revision del 09-10-2026).
+    val lastCount = remember { intArrayOf(count) }
+    LaunchedEffect(count) {
+        if (count < lastCount[0]) {
+            if (selected >= count) onSelect(count - 1)
+            refocus = true
+        }
+        lastCount[0] = count
+    }
     val listState = rememberLazyListState()
     LaunchedEffect(selected) { runCatching { listState.animateScrollToItem(selected) } }
     // El clic va aqui y no en quien cambia la seleccion, porque la cambian tres cosas: la

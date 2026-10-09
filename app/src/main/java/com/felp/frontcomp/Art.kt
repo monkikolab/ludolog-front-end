@@ -333,15 +333,25 @@ object AppArt {
 
     private fun lookup(name: String, roots: List<File>): File? {
         for (root in roots) {
-            val dir = File(root, "apps")
-            if (!dir.isDirectory) continue
-            for (ext in VIDEO_EXTS) {
-                val f = File(dir, "$name.$ext")
-                if (f.isFile) return f
-            }
+            val here = listing(root)
+            for (ext in VIDEO_EXTS) here["$name.$ext".lowercase()]?.let { return it }
         }
         return null
     }
+
+    /**
+     * Lo que hay en `apps/` de una carpeta de medios, leido una vez: se probaba cada extension en
+     * cada carpeta, en el hilo de la pantalla, con cada movimiento en el cajon (revision del
+     * 09-10-2026). Como SystemArt.systems; se olvida con lo demas del tema (ThemeFiles.forget).
+     */
+    private fun listing(root: File): Map<String, File> = listings.getOrPut(root.path) {
+        val dir = File(root, "apps")
+        dir.list().orEmpty().associate { it.lowercase() to File(dir, it) }
+    }
+
+    private val listings = java.util.concurrent.ConcurrentHashMap<String, Map<String, File>>()
+
+    fun forget() = listings.clear()
 }
 
 /**

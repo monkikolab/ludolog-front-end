@@ -188,18 +188,19 @@ fun SceneBackground(
     val g by animateFloatAsState(punch(tint.green, StaticTint.green), tween(140), label = "tintG")
     val b by animateFloatAsState(punch(tint.blue, StaticTint.blue), tween(140), label = "tintB")
 
-    val base = remember(file.path) { loadBitmap(file) }
-    val lit = remember(glow?.path) { glow?.let { loadBitmap(it) } }
-    val fire = remember(embers?.path) { embers?.let { loadBitmap(it) } }
-    val pilot = remember(led?.path) { led?.let { loadBitmap(it) } }
+    val base = rememberRoomImage(file)
+    val lit = rememberRoomImage(glow)
+    val fire = rememberRoomImage(embers)
+    val pilot = rememberRoomImage(led)
 
     Canvas(
         modifier.fillMaxSize().graphicsLayer {
+            // El desenfoque de Compose y no el de Android: aquel es de Android 12, y en una consola
+            // con Android 11 (la Retroid Pocket 2S, por ejemplo) la sala tiraba la aplicacion en la
+            // lista de consolas. Este, por debajo de 12, no hace nada (revision del 09-10-2026).
             renderEffect =
                 if (blur <= 0.1f) null
-                else RenderEffect.createBlurEffect(
-                    blur * density, blur * density, Shader.TileMode.CLAMP,
-                ).asComposeRenderEffect()
+                else androidx.compose.ui.graphics.BlurEffect(blur * density, blur * density, androidx.compose.ui.graphics.TileMode.Clamp)
         }
     ) {
         val dst = IntSize(size.width.toInt(), size.height.toInt())
@@ -267,6 +268,32 @@ fun SceneBackground(
 
 private fun loadBitmap(f: File): ImageBitmap? =
     runCatching { BitmapFactory.decodeFile(f.path)?.asImageBitmap() }.getOrNull()
+
+/**
+ * Las imagenes de la sala ya leidas, con la fecha del fichero de cuando se leyeron. Se leian del
+ * disco al componer, en el hilo de la pantalla, cada vez que la sala volvia a la vista (revision del
+ * 09-10-2026). Ahora en otro hilo, y guardadas: al volver se ven ya, y despues se mira en otro hilo
+ * si el fichero cambio (un tema reinstalado con la misma ruta).
+ */
+private object RoomImages {
+    class Entry(val stamp: Long, val image: ImageBitmap?)
+    val read = java.util.concurrent.ConcurrentHashMap<String, Entry>()
+
+    /** La de [f], leida otra vez si el fichero cambio desde la ultima. En otro hilo. */
+    fun load(f: File): ImageBitmap? {
+        val stamp = f.lastModified()
+        read[f.path]?.takeIf { it.stamp == stamp }?.let { return it.image }
+        return loadBitmap(f).also { read[f.path] = Entry(stamp, it) }
+    }
+}
+
+@Composable
+private fun rememberRoomImage(f: File?): ImageBitmap? {
+    val image by androidx.compose.runtime.produceState(f?.let { RoomImages.read[it.path]?.image }, f?.path) {
+        value = f?.let { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { RoomImages.load(it) } }
+    }
+    return image
+}
 
 /* ----------------------------------------------------------------- la pantalla */
 
@@ -679,7 +706,10 @@ fun SceneScreen(
     // nieve quieta no se distingue de la que se mueve: el reloj se para. Si no, al ritmo de
     // Motion; el shader de la nieve se recalculaba en cada refresco de la pantalla.
     val clock = rememberMotionClock(key = channel, running = !(blurred && channel == null))
-    val rolling by remember(channel) { derivedStateOf { clock.floatValue >= Tune.BLIND * 0.9f } }
+    // Con el ahorro de bateria el reloj no corre, y la tele se quedaba en el primer instante: nieve
+    // pura para siempre, sin caratula. Entonces se da por sintonizada (revision del 09-10-2026).
+    val now = { if (Motion.saver.value) Tune.SETTLED else clock.floatValue }
+    val rolling by remember(channel) { derivedStateOf { now() >= Tune.BLIND * 0.9f } }
 
     // El reloj no se para al sintonizar.
     //
@@ -696,8 +726,8 @@ fun SceneScreen(
     // Pasando funciones, la lectura ocurre dentro del bloque de la capa grafica, que es fase
     // de dibujado: se recalcula el efecto, que es lo unico que depende del tiempo, y no se
     // recompone nada.
-    val snow = { if (channel == null) 1f else Tune.snow(clock.floatValue) }
-    val roll = { if (channel == null) 0f else Tune.roll(clock.floatValue) }
+    val snow = { if (channel == null) 1f else Tune.snow(now()) }
+    val roll = { if (channel == null) 0f else Tune.roll(now()) }
     // El tiempo se envuelve antes de entrar al shader: creciendo sin limite, el hash del
     // ruido pierde precision y la nieve acaba congelandose.
     val time = { clock.floatValue % 600f }
@@ -705,7 +735,7 @@ fun SceneScreen(
     // caratula. Derivada, asi que solo avisa cuando el booleano cambia de valor, no en cada
     // fotograma.
     val tuned by remember(channel) {
-        derivedStateOf { channel != null && Tune.snow(clock.floatValue) < 0.9f }
+        derivedStateOf { channel != null && Tune.snow(now()) < 0.9f }
     }
 
     val blur by animateFloatAsState(
@@ -716,11 +746,10 @@ fun SceneScreen(
 
     BoxWithConstraints(
         modifier.fillMaxSize().graphicsLayer {
+            // Ver SceneBackground: el de Compose, que en Android 11 no hace nada en vez de fallar.
             renderEffect =
                 if (blur <= 0.1f) null
-                else RenderEffect.createBlurEffect(
-                    blur * density, blur * density, Shader.TileMode.DECAL,
-                ).asComposeRenderEffect()
+                else androidx.compose.ui.graphics.BlurEffect(blur * density, blur * density, androidx.compose.ui.graphics.TileMode.Decal)
         }
     ) {
         val b = box
@@ -1052,7 +1081,13 @@ internal fun Backdrop(file: File, modifier: Modifier = Modifier) {
  */
 @Composable
 internal fun RoomFrame(image: File, focus: Float? = null, content: @Composable () -> Unit) {
-    val src = remember(image) { roomSize(image) }
+    // El tamaño de la imagen, leido en otro hilo (revision del 09-10-2026); mientras, el de la sala
+    // que viene con los temas, que es el de casi todas.
+    val src by androidx.compose.runtime.produceState(roomSizes[image.path] ?: IntSize(384, 216), image.path) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            roomSize(image).also { roomSizes[image.path] = it }
+        }
+    }
     val ground = LocalTheme.current.ground
     val density = androidx.compose.ui.platform.LocalDensity.current
     androidx.compose.foundation.layout.Box(
@@ -1069,7 +1104,10 @@ internal fun RoomFrame(image: File, focus: Float? = null, content: @Composable (
             if (focus != null && w.toFloat() / h < WIDE_ASPECT) {
                 val list = with(density) { listWidth((w / density.density).dp, instrument = false).toPx() }
                 val wanted = (list + (w - list) / 2f - focus * rw).toInt()
-                x = wanted.coerceIn(w - rw, 0)
+                // Solo si la sala es mas ancha que la pantalla: si no, el rango quedaba al reves y
+                // coerceIn tiraba la aplicacion en cada fotograma (una sala 4:3 en una pantalla
+                // 16:10, revision del 09-10-2026). Mas estrecha, se queda pegada a la derecha.
+                if (rw > w) x = wanted.coerceIn(w - rw, 0)
             }
             val placeable = measurable.measure(androidx.compose.ui.unit.Constraints.fixed(rw, rh))
             layout(w, h) { placeable.place(x, (h - rh) / 2) }
@@ -1078,6 +1116,9 @@ internal fun RoomFrame(image: File, focus: Float? = null, content: @Composable (
         androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) { content() }
     }
 }
+
+/** Los tamaños ya leidos, por ruta: ver RoomFrame. */
+private val roomSizes = java.util.concurrent.ConcurrentHashMap<String, IntSize>()
 
 /** El tamaño en pixeles de la imagen de la sala, sin descodificarla; 384x216 si no se puede leer. */
 private fun roomSize(f: File): IntSize = runCatching {

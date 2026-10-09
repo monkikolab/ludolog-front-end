@@ -25,7 +25,7 @@ import android.database.sqlite.SQLiteOpenHelper
 internal class Logbook(
     context: Context,
     private val withOthers: Boolean = false,
-) : SQLiteOpenHelper(context, PATH, null, VERSION) {
+) : SQLiteOpenHelper(context, PATH, null, VERSION, KEEP) {
 
     /** Los cuadernos de otras consolas enganchados a esta conexion, para LogStats. */
     var others: List<Other> = emptyList()
@@ -54,8 +54,10 @@ internal class Logbook(
             db.execSQL(MISSIONS)
         }
         if (!withOthers) return
-        others = Logbooks.others().mapIndexedNotNull { i, file ->
-            val other = Other("other${i + 1}", OTHER_OFFSET * (i + 1))
+        val used = HashSet<Long>()
+        others = Logbooks.others().sortedBy { Logbooks.isConflictCopy(it) }.mapNotNull { file ->
+            val slot = Logbooks.slot(file, used)
+            val other = Other("other$slot", OTHER_OFFSET * slot)
             runCatching {
                 db.execSQL("ATTACH DATABASE ? AS ${other.schema}", arrayOf(Logbooks.readable(file).path))
                 other
@@ -221,7 +223,7 @@ internal class Logbook(
      * ahi —lo que diga es poco, nunca de mas— y se tira solo si no llego a guardar ninguna o si
      * no pasa del minimo de los ajustes, que es la misma regla que al cerrar una normal.
      */
-    fun closeUnfinished(minMs: Long) {
+    fun closeUnfinished(minMs: Long): Boolean {
         val db = writableDatabase
         val open = db.rawQuery(
             "SELECT s.id, s.started_at, (SELECT MAX(m.at) FROM samples m WHERE m.session_id = s.id) " +
@@ -239,6 +241,7 @@ internal class Logbook(
                 put("duration_ms", lasted)
             }, "id = ?", arrayOf(id.toString()))
         }
+        return open.isNotEmpty()
     }
 
     /**
@@ -312,6 +315,16 @@ internal class Logbook(
          * cuadernos, y la ventana de una partida la busca, con sus medidas, por su numero.
          */
         const val OTHER_OFFSET = 1_000_000_000L
+
+        /**
+         * Lo que hace SQLite cuando un fichero esta dañado: nada mas que apuntarlo (revision del
+         * 09-10-2026). El de Android por defecto BORRA la base y todas las enganchadas, y aqui la
+         * principal es el cuaderno de esta consola: bastaba con que la copia del de otra llegara a
+         * medias por Link para perderlo entero.
+         */
+        val KEEP = android.database.DatabaseErrorHandler { db ->
+            android.util.Log.e("Ludolog", "cuaderno: SQLite lo da por dañado (${db.path}); no se borra nada")
+        }
 
         /** Si una partida leida es de esta consola: las de otras no se pueden olvidar desde aqui. */
         fun isOwn(id: Long): Boolean = id < OTHER_OFFSET

@@ -40,10 +40,6 @@ object CatalogWriter {
         if (sys.videoSnaps.isNotEmpty()) {
             appendLine("videoSnaps = ${q(sys.videoSnaps)}   # coleccion de videos de partida en archive.org")
         }
-        if (sys.accent != 0L) {
-            appendLine("accent = ${q("0x" + sys.accent.toString(16).padStart(8, '0'))}")
-        }
-        appendLine("boxAspect = ${sys.boxAspect}")
         appendLine("zipOk = ${sys.zipOk}")
         if (sys.image.isNotEmpty()) appendLine("image = ${q(sys.image)}")
         if (sys.video.isNotEmpty()) appendLine("video = ${q(sys.video)}")

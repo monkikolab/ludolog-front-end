@@ -4,7 +4,7 @@
 
 [![Build](https://github.com/monkikolab/ludolog-front-end/actions/workflows/build.yml/badge.svg)](https://github.com/monkikolab/ludolog-front-end/actions/workflows/build.yml)
 
-**v0.5.3** · A front-end for Android retro handhelds. Your games sorted by console and opened in the
+**v0.6.0** · A front-end for Android retro handhelds. Your games sorted by console and opened in the
 right emulator, with box art, video previews and themes, plus a Companion that turns what you play
 into a character.
 
@@ -18,6 +18,8 @@ into a character.
   RetroArch cores to standalone emulators and PC game launchers.
 - **Box art and videos.** Covers and gameplay previews are fetched for you, and a free game catalog
   adds names, genres, release dates and synopses.
+- **Find any game.** Search every console at once by part of its name, with Y or the magnifier at
+  the top, and pick up where you left off from Recently played, at the top of the list.
 - **Made for handhelds.** Built for a gamepad, works with touch, adapts to any screen shape and to
   dual-screen devices, and can be your home screen.
 
@@ -58,6 +60,20 @@ Ludolog is young. So far it has been tried on an AYN Odin 3 (Android 15) and a R
 PPSSPP, Azahar, Eden, GameNative, GameHub Lite and DoomForge. Other emulators are set up but
 untested. Expect rough edges, and please
 [report what you find](https://github.com/monkikolab/ludolog-front-end/issues).
+
+## Privacy
+
+Ludolog has no accounts, ads, analytics or tracking. It goes online only for:
+
+- **GitHub**, to download the game catalog and the themes from this project's releases, and to
+  check for a newer Ludolog (this can be turned off in Settings, Data).
+- **Box art and videos**: libretro-thumbnails, GameTDB, the Steam store (for PC games) and
+  gameplay-video collections on archive.org. Only the game's name or ID is sent.
+- **IGDB**, only if you add your own keys. They are kept encrypted on the device.
+
+Your settings, art and logbook stay in Ludolog's folder on your device. Ludolog Link, if you use
+it, talks only to your own devices and PC on your local network. The diagnostics file is saved to
+Download for you to attach to a bug report; nothing is sent on its own.
 
 ## Support the project
 

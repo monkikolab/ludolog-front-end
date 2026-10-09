@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 // La barra de arriba: el engranaje, la hora y los iconos de estado. Salio de MainActivity.kt el 07-10-2026.
 
 @Composable
-internal fun TopBar(vm: LibraryViewModel, onSettings: () -> Unit) {
+internal fun TopBar(vm: LibraryViewModel, onSettings: () -> Unit, onSearch: () -> Unit = {}) {
     // Con la barra escondida no se pide nada al aparato: ni receptor de bateria, ni consulta
     // de salidas de audio, ni el reloj despertandose cada veinte segundos. Esconderla es
     // esconderla de verdad, no dibujarla transparente.
@@ -45,6 +45,10 @@ internal fun TopBar(vm: LibraryViewModel, onSettings: () -> Unit) {
         // del velo. Alli B ya no era de la ventana sino del sistema, y cerraba todo.
         Box(Modifier.pointerInput(Unit) { detectTapGestures { onSettings() } }.padding(4.dp)) {
             if (pixel) PixelIcon(PixelIcons.gear, ink) else GearIcon()
+        }
+        // La lupa, al lado: buscar un juego con el dedo. Con el mando, su atajo (ver SearchWindow).
+        Box(Modifier.pointerInput(Unit) { detectTapGestures { onSearch() } }.padding(start = 10.dp, top = 4.dp, end = 4.dp, bottom = 4.dp)) {
+            if (pixel) PixelIcon(PixelIcons.search, ink) else SearchIcon()
         }
         if (!full) return@Row
         Spacer(Modifier.weight(1f))
@@ -214,3 +218,19 @@ private fun BoltIcon() {
 }
 
 /* --------------------------------------------------------------------- nivel 1: consolas */
+
+/** La lupa de la barra de arriba, dibujada como el engranaje (ver GearIcon). */
+@Composable
+internal fun SearchIcon() {
+    val ink = MenuInk
+    androidx.compose.foundation.Canvas(Modifier.size(20.dp)) {
+        val w = size.minDimension
+        val stroke = w * 0.11f
+        val r = w * 0.30f
+        val c = androidx.compose.ui.geometry.Offset(w * 0.42f, w * 0.42f)
+        drawCircle(ink, r, c, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+        val from = androidx.compose.ui.geometry.Offset(c.x + r * 0.72f, c.y + r * 0.72f)
+        drawLine(ink, from, androidx.compose.ui.geometry.Offset(w * 0.90f, w * 0.90f), stroke * 1.3f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}

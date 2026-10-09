@@ -288,7 +288,9 @@ private fun ExtrasStep(onDone: () -> Unit) {
         // como estaba, encendido, y baja solo en cuanto se pueda.
         when {
             cs == DONE || cs == HAVE -> prefs.catalogOn = true
-            published != null -> prefs.catalogOn = false
+            // Solo si no se pidio: una descarga que fallo (la Wi-Fi) no es decir que no, y apagado ya
+            // no lo volvia a intentar (revision del 09-10-2026).
+            published != null && cs == GET -> prefs.catalogOn = false
         }
         onDone()
     }
@@ -661,7 +663,10 @@ private fun FolderChoice(onDone: () -> Unit) {
     if (missing != null) {
         Ask("DATA FOLDER NOT FOUND", "${missing.path}\nInsert the card it was on, or choose another place.")
         Choice("TRY AGAIN", "", first = true, enabled = !busy) {
-            if (DataHome.ready()) onDone() else failed = "Still not there."
+            // Los ajustes, ya del fichero de esa carpeta: los de antes se abrieron sin ella y no
+            // escribian a ningun sitio, y lo elegido en los pasos que faltaban se perdia al reiniciar
+            // (revision del 09-10-2026). Ver ConfigFile.reopen.
+            if (DataHome.ready()) { ConfigFile.reopen(); onDone() } else failed = "Still not there."
         }
     } else {
         Ask(

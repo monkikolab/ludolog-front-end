@@ -12,8 +12,6 @@ data class SystemDef(
     val label: String,
     val raName: String = "",
     val raCore: String = "",
-    val accent: Long = 0L,
-    val boxAspect: Float = 1f,
     val zipOk: Boolean = true,
     val extensions: Set<String> = emptySet(),
     val aliases: Set<String> = emptySet(),
@@ -85,7 +83,6 @@ data class SystemDef(
 class Catalog(
     val systems: List<SystemDef>,
     val zipExtensions: Set<String> = setOf("zip", "7z"),
-    val discSystems: Set<String> = emptySet(),
     val regionSuffixes: Set<String> = emptySet(),
     /**
      * Extensions that never identify a system on their own, even when a single system
@@ -164,7 +161,6 @@ class Catalog(
             return Catalog(
                 systems = doc.all("system").mapNotNull(::readSystem),
                 zipExtensions = defaults?.strings("zipExtensions")?.toSet().orEmpty(),
-                discSystems = defaults?.strings("discSystems")?.toSet().orEmpty(),
                 regionSuffixes = defaults?.strings("regionSuffixes")?.toSet().orEmpty(),
                 ambiguousExtensions = defaults?.strings("ambiguousExtensions")
                     ?.map(::cleanExtension)?.toSet().orEmpty(),
@@ -185,8 +181,6 @@ class Catalog(
                 label = t.string("label") ?: id.uppercase(),
                 raName = t.string("raName").orEmpty(),
                 raCore = t.string("raCore").orEmpty(),
-                accent = t.string("accent")?.removePrefix("0x")?.toLongOrNull(16) ?: 0L,
-                boxAspect = t.number("boxAspect")?.toFloat() ?: 1f,
                 zipOk = t.bool("zipOk") ?: true,
                 extensions = t.strings("extensions").map(::cleanExtension).toSet(),
                 aliases = t.strings("aliases").toSet(),
@@ -215,7 +209,6 @@ class Catalog(
             return Catalog(
                 systems = merged.values.toList(),
                 zipExtensions = overlay.zipExtensions.ifEmpty { base.zipExtensions },
-                discSystems = if (overlay.discSystems.isNotEmpty()) overlay.discSystems else base.discSystems,
                 regionSuffixes = if (overlay.regionSuffixes.isNotEmpty()) overlay.regionSuffixes else base.regionSuffixes,
                 ambiguousExtensions = if (overlay.ambiguousExtensions.isNotEmpty())
                     overlay.ambiguousExtensions else base.ambiguousExtensions,

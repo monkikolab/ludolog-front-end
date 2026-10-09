@@ -64,6 +64,12 @@ const val ANDROID_SYSTEM = "android"
  */
 const val FAVORITES_SYSTEM = "favorites"
 
+/**
+ * La fila de los ultimos jugados, arriba de todo (09-10-2026): lo que se quiere al encender casi
+ * siempre es seguir con lo de ayer. Sale del Companion, asi que con el apagado no esta.
+ */
+const val RECENT_SYSTEM = "recent"
+
 const val APP_SCHEME = "app://"
 
 val Game.appPackage: String? get() = path.removePrefix(APP_SCHEME).takeIf { it != path }
@@ -205,6 +211,24 @@ object AppsRepo {
      * than cast; without this every modern app would come back blank.
      */
     fun icon(ctx: Context, pkg: String): Bitmap? = runCatching {
+        loadIcon(ctx, pkg)
+    }.getOrNull()
+
+    /**
+     * Los iconos ya pintados, por paquete y version (lastUpdateTime): pintar uno es pedirselo al
+     * sistema y dibujarlo, y se hacia en el hilo de la pantalla en cada casilla del cajon (revision del
+     * 09-10-2026). Ver rememberAppIcon.
+     */
+    private val icons = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<Bitmap>>()
+
+    /** El icono si ya esta pintado, sin ir al sistema; nulo si no. */
+    fun cachedIcon(pkg: String, updated: Long): Bitmap? = icons["$pkg@$updated"]?.orElse(null)
+
+    /** El icono, pintado y guardado. En otro hilo. */
+    fun iconFor(ctx: Context, pkg: String, updated: Long): Bitmap? =
+        icons.getOrPut("$pkg@$updated") { java.util.Optional.ofNullable(icon(ctx, pkg)) }.orElse(null)
+
+    private fun loadIcon(ctx: Context, pkg: String): Bitmap? = runCatching {
         val d: Drawable = ctx.packageManager.getApplicationIcon(pkg)
         if (d is BitmapDrawable && d.bitmap != null) return@runCatching d.bitmap
         val w = d.intrinsicWidth.coerceIn(1, 192)

@@ -119,7 +119,19 @@ internal object Sfx {
     private var clipBig = false
 
     /** Lo ya medido, para no abrir el fichero cada vez que se vuelve al mismo juego. */
-    private val clipTooBig = HashMap<String, Boolean>()
+    private val clipTooBig = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    /**
+     * Mira de antemano, fuera del hilo de la pantalla, si el sonido de un juego cabe en el SoundPool:
+     * es abrir el fichero, y se hacia en el principal al llegar a cada juego (revision del
+     * 09-10-2026). Ver [clip], que despues ya lo encuentra sabido.
+     */
+    fun probe(file: java.io.File) {
+        probed[file.path] = clipTooBig.getOrPut("${file.path}@${file.lastModified()}") { tooBigForPool(file) }
+    }
+
+    /** Lo que dijo [probe] de cada ruta: [clip] lo usa sin mirar la fecha del fichero. */
+    private val probed = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     /**
      * Con la aplicacion al fondo. Mientras, nada EMPIEZA a sonar: lo que se pida se deja para
@@ -157,7 +169,7 @@ internal object Sfx {
         }
         stopClip(sp)
         clipPath = file.path
-        clipBig = clipTooBig.getOrPut("${file.path}@${file.lastModified()}") { tooBigForPool(file) }
+        clipBig = probed[file.path] ?: clipTooBig.getOrPut("${file.path}@${file.lastModified()}") { tooBigForPool(file) }
         if (clipBig) {
             if (suspended) clipPending = true else startClip()
             return

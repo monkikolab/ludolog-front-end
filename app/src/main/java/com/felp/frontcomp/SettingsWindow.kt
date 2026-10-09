@@ -181,16 +181,29 @@ private fun ColumnScope.RootPane(
     val home = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
     ) { HomeApp.refresh(ctx) }
-    val tabs = remember(
+    // Las filas, armadas en otro hilo (revision del 09-10-2026): armarlas mira los videos de cada
+    // consola, la cache y que emulador hay instalado para cada una, y se rehacian en el hilo de la
+    // pantalla con cada A. Mientras se rehacen se ven las de antes; la primera vez, un momento nada.
+    val built by androidx.compose.runtime.produceState<List<SettingsTab>?>(
+        null,
         revision, vm.result, vm.art, vm.busy, vm.catalog, HomeApp.held,
         LinkSaveCheck.present.value, LinkInstaller.status.value, LinkInstaller.lastError.value,
     ) {
-        SettingsModel.build(
-            ctx, vm, onClose, onBright = toBright,
-            onHome = { runCatching { home.launch(HomeApp.intent(ctx)) } },
-        ) {
-            vm.loadCatalog { n -> ctx.assets.open(n).bufferedReader().use { it.readText() } }
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            SettingsModel.build(
+                ctx, vm, onClose, onBright = toBright,
+                onHome = { runCatching { home.launch(HomeApp.intent(ctx)) } },
+            ) {
+                vm.loadCatalog { n -> ctx.assets.open(n).bufferedReader().use { it.readText() } }
+            }
         }
+    }
+    val tabs = built ?: run {
+        // Con su ancla de foco: sin ella, B no llegaba a la ventana mientras se arma.
+        WindowFrame(title = "SETTINGS", subtitle = "", description = "", hint = "L R  tab      B  close") {
+            ModalRows(count = 0, selected = 0, onSelect = {}, onActivate = {}) {}
+        }
+        return
     }
     val at = tab.coerceIn(0, tabs.lastIndex)
     val items = tabs[at].items
@@ -478,10 +491,9 @@ private fun ColumnScope.AppearancePane() {
 @Composable
 private fun ColumnScope.HiddenAppsPane(vm: LibraryViewModel) {
     val ctx = LocalContext.current
-    var revision by remember { mutableStateOf(0) }
-    val hidden = remember(revision, vm.emulators) {
-        AppsRepo.list(ctx, vm.emulators, vm.prefs).filter { it.hidden }
-    }
+    // Del modelo, leidas en otro hilo (ver LibraryViewModel.apps), y otra vez al abrir.
+    LaunchedEffect(Unit) { vm.refreshApps(ctx) }
+    val hidden = remember(vm.apps) { vm.apps.filter { it.hidden } }
     var selected by remember { mutableStateOf(0) }
     val sel = selected.coerceIn(0, (hidden.size - 1).coerceAtLeast(0))
 
@@ -499,7 +511,7 @@ private fun ColumnScope.HiddenAppsPane(vm: LibraryViewModel) {
             selected = sel,
             onSelect = { selected = it },
             onActivate = {
-                hidden.getOrNull(sel)?.let { vm.prefs.setAppHidden(it.pkg, false); revision++ }
+                hidden.getOrNull(sel)?.let { vm.prefs.setAppHidden(it.pkg, false); vm.refreshApps(ctx) }
             },
         ) { index ->
             ModalRow(
@@ -821,7 +833,11 @@ private fun ColumnScope.RomFoldersPane(vm: LibraryViewModel) {
     var revision by remember { mutableStateOf(0) }
     val chosen = remember(revision) { prefs.romDirs }
     val found = remember { Scanner.defaultRoots().map { it.path } }
-    val folders = remember(revision) { (found + chosen.orEmpty()).distinct() }
+    // Las que se ven siguen en la lista aunque se apaguen: una elegida con «Add a folder» y puesta
+    // en OFF desaparecia, no se podia volver a encender, y el cursor caia en «Add a folder»
+    // (revision del 09-10-2026).
+    val seen = remember { androidx.compose.runtime.mutableStateListOf<String>().apply { addAll(prefs.romDirs.orEmpty()) } }
+    val folders = remember(revision, seen.size) { (found + seen + chosen.orEmpty()).distinct() }
     var selected by remember { mutableStateOf(0) }
 
     fun apply(next: Set<String>?) {
@@ -833,6 +849,7 @@ private fun ColumnScope.RomFoldersPane(vm: LibraryViewModel) {
         androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree(),
     ) { uri ->
         val path = uri?.let(::treePath) ?: return@rememberLauncherForActivityResult
+        if (path !in seen) seen += path
         apply((prefs.romDirs ?: found.toSet()) + path)
     }
 

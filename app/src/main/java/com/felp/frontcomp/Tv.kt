@@ -155,11 +155,23 @@ data class TvSkin(
 
     private fun resolve(path: String, roots: List<File>): File? {
         if (path.isEmpty()) return null
-        File(path).takeIf { it.isAbsolute && it.isFile }?.let { return it }
-        return roots.asSequence().map { File(it, path) }.firstOrNull { it.isFile }
+        // Lo encontrado se guarda (revision del 09-10-2026): se buscaba en la tarjeta al componer, en
+        // el hilo de la pantalla. Se olvida con lo demas del tema: ver ThemeFiles.forget.
+        val key = path + "|" + roots.joinToString("|") { it.path }
+        return found.getOrPut(key) {
+            java.util.Optional.ofNullable(
+                File(path).takeIf { it.isAbsolute && it.isFile }
+                    ?: roots.asSequence().map { File(it, path) }.firstOrNull { it.isFile },
+            )
+        }.orElse(null)
     }
 
     companion object {
+        private val found = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<File>>()
+
+        /** Olvida las rutas encontradas: ver ThemeFiles.forget. */
+        fun forget() = found.clear()
+
         /**
          * The set that ships, drawn rather than rendered.
          *

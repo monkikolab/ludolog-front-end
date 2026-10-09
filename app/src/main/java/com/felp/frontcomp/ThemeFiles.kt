@@ -265,5 +265,7 @@ object ThemeFiles {
     fun forget() {
         found.clear()
         SvgMark.forget()
+        TvSkin.forget()
+        AppArt.forget()
     }
 }

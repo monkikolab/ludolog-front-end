@@ -607,12 +607,13 @@ private fun SystemEmulatorPicker(vm: LibraryViewModel, systemId: String, onClose
     // Sin las que la tabla ya ofrece arriba. RetroArch salia dos veces con el mismo nombre —la
     // de la tabla, que lleva el nucleo, y la app suelta— y la suelta recibia el juego sin saber
     // con que nucleo abrirlo: con los arcade elegidos asi para la consola no arrancaba ninguno.
-    val apps = remember(vm.emulators, known) {
+    // Las apps del modelo, leidas en otro hilo (ver LibraryViewModel.apps), y otra vez al abrir.
+    LaunchedEffect(Unit) { vm.refreshApps(ctx) }
+    val apps = remember(vm.apps, known) {
         // Todos sus paquetes, no solo el instalado primero: con el fork tambien instalado, salia
         // como app suelta y elegido asi se lanzaba sin nucleo.
         val covered = known.flatMap { it.packages() }.toSet()
-        AppsRepo.list(ctx, vm.emulators, vm.prefs)
-            .filterNot { it.slot == AppSlot.GAME || it.pkg in covered }
+        vm.apps.filterNot { it.slot == AppSlot.GAME || it.pkg in covered }
     }
     val chosen = remember(revision, systemId) { vm.prefs.emulatorForSystem(systemId) }
     // Elegir RetroArch abre su nucleo: es lo que de verdad cambia de una consola a otra.
@@ -875,7 +876,7 @@ internal fun ColumnScope.TextPage(
  * no se note de dónde viene.
  */
 @Composable
-private fun NativeField(
+internal fun NativeField(
     initial: String,
     onValue: (String) -> Unit,
     /** El tic del teclado confirma: el botón de guardar queda debajo del teclado. */

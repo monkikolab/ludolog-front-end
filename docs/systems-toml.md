@@ -34,7 +34,6 @@ aliases = ["gameandwatch", "gw", "handheldelectronicgame"]
 | `image`, `video` | Picture and spin video, relative to a media folder or absolute. By default, `systems/<id>.png` and `.mp4`, for example in `Ludolog/media/`. |
 | `description`, `maker`, `year`, `specs` | Text and facts shown with the console. |
 | `videoSnaps` | An archive.org collection of gameplay videos. |
-| `accent`, `boxAspect` | Accepted, but not used by the current app. |
 
 ## How games are matched
 

@@ -135,7 +135,10 @@ class Telemetry {
         // On the charger that figure is not the game: the current is flowing the other way,
         // into the battery. What the game costs is then what the charger brings in minus
         // what is being stored, and that only works where the input rail can be read.
-        if (raw > 0) return chargingDrawW(fromBattery)
+        // Por el cargador y no por el signo, que cada fabricante pone a su manera (ver arriba): en una
+        // consola que da la descarga en positivo, nada se apuntaba sin cargador, y con el se apuntaba
+        // como gasto del juego lo que entraba en la bateria (revision del 09-10-2026).
+        if (isCharging(context)) return chargingDrawW(fromBattery)
         return fromBattery.toFloat().takeIf { it > 0f && it < MAX_PLAUSIBLE_W }
     }
 
@@ -313,11 +316,23 @@ class Telemetry {
         return if (tenths == Int.MIN_VALUE) null else tenths / 10f
     }
 
+    /**
+     * Android da NaN si se le pregunta mas de una vez por segundo, y las medidas pueden ir cada medio
+     * segundo: una de cada dos caia a la temperatura de la bateria y las medias mezclaban las dos.
+     * Se guarda la ultima un segundo (revision del 09-10-2026).
+     */
     private fun thermalHeadroom(context: Context): Float? {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - headroomAt < 1_000L) return headroomLast
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        val h = runCatching { pm.getThermalHeadroom(0) }.getOrNull() ?: return null
-        return if (h.isNaN()) null else h
+        val h = runCatching { pm.getThermalHeadroom(0) }.getOrNull()
+        headroomAt = now
+        if (h != null && !h.isNaN()) headroomLast = h
+        return headroomLast
     }
+
+    private var headroomAt = 0L
+    private var headroomLast: Float? = null
 
     private fun headroomAsTempC(headroom: Float): Float =
         HEADROOM_MIN_C + headroom.coerceIn(0f, 1f) * (HEADROOM_MAX_C - HEADROOM_MIN_C)

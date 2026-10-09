@@ -17,8 +17,6 @@ raName = "Handheld Electronic Game"
 # que este declarado en emulators.toml.
 raCore = "gw"
 
-accent = "0xffc0392b"
-boxAspect = 1.0
 zipOk = true
 
 # El grafico de la consola: relativo a una carpeta de medios, o ruta absoluta.

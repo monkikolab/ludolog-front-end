@@ -104,7 +104,9 @@ internal object Dossiers {
     fun setOwn(game: Game, key: String, value: String?) = setOwn(game.systemId, game.path, key, value)
 
     /** Lo mismo por consola y ruta: lo que llega de otra consola por Ludolog Link (ver LinkEdits). */
-    fun setOwn(systemId: String, path: String, key: String, value: String?) {
+    fun setOwn(systemId: String, path: String, key: String, value: String?) = synchronized(edits) { setOwnLocked(systemId, path, key, value) }
+
+    private fun setOwnLocked(systemId: String, path: String, key: String, value: String?) {
         require(key.startsWith("my.")) { "solo lo de a mano: $key" }
         val all = of(systemId).toMutableMap()
         val d = all[path] ?: Dossier(path, 0L, 0L, emptyMap())
@@ -119,7 +121,9 @@ internal object Dossiers {
      * Devuelve la consola en la que estaba, o nulo si no tenia ficha. Tamaño y fecha no cambian
      * al renombrar, asi que la siguiente pasada no la da por cambiada. Ver LinkBridge.
      */
-    fun moved(from: String, to: String): String? {
+    fun moved(from: String, to: String): String? = synchronized(edits) { movedLocked(from, to) }
+
+    private fun movedLocked(from: String, to: String): String? {
         val systems = dir.listFiles { f -> f.name.endsWith(".tsv") }?.map { it.name.removeSuffix(".tsv") }.orEmpty()
         for (systemId in systems) {
             val all = of(systemId)
@@ -133,8 +137,33 @@ internal object Dossiers {
         return null
     }
 
+    /**
+     * Lo que se edita a mano o llega de Link (setOwn, moved) y lo que guarda una pasada (refresh) va
+     * de uno en uno (revision del 09-10-2026): la pasada guardaba la copia que tomo al empezar, minutos
+     * antes, y se llevaba por delante un genero puesto en medio o un ROM renombrado; y dos guardados a
+     * la vez escribian el mismo .part y lo dejaban mezclado.
+     */
+    private val edits = Any()
+
+    /**
+     * Lo de una pasada con lo editado mientras tanto: lo puesto a mano tal como esta ahora, y las
+     * fichas que aparecieron en medio (un ROM renombrado desde Link).
+     */
+    private fun withEdits(systemId: String, all: MutableMap<String, Dossier>): Map<String, Dossier> {
+        for ((path, now) in of(systemId)) {
+            val mine = all[path]
+            if (mine == null) { all[path] = now; continue }
+            val own = now.fields.filterKeys { it.startsWith("my.") }
+            if (own == mine.fields.filterKeys { it.startsWith("my.") }) continue
+            all[path] = mine.copy(fields = LinkedHashMap(mine.fields.filterKeys { !it.startsWith("my.") }) + own)
+        }
+        return all
+    }
+
     /** Guarda las de una consola: primero a un `.part`, y luego se renombra. */
-    fun save(systemId: String, all: Map<String, Dossier>) {
+    fun save(systemId: String, all: Map<String, Dossier>) = synchronized(edits) { saveLocked(systemId, all) }
+
+    private fun saveLocked(systemId: String, all: Map<String, Dossier>) {
         synchronized(memo) { memo[systemId] = all.toMutableMap() }
         runCatching {
             dir.mkdirs()
@@ -179,9 +208,10 @@ internal object Dossiers {
     /**
      * Como se leen los paquetes. Se sube cada vez que la app empieza a usar algo nuevo de ellos,
      * para que las fichas ya hechas se vuelvan a llenar. 2: generos y sinopsis de GameTDB. 3: los
-     * nombres y el ID de GameTDB para el arte.
+     * nombres y el ID de GameTDB para el arte. 4: las consolas cuyo paquete no se habia bajado
+     * quedaron apuntadas como buscadas (ver refresh); se buscan otra vez.
      */
-    private const val READS = 3
+    private const val READS = 4
 
     /**
      * Donde mas buscar, por titulo, lo que el paquete de una consola no tiene. Un juego de Android
@@ -283,17 +313,24 @@ internal object Dossiers {
                     // Sin paquete para su consola (PICO-8, Steam) se apunta igual que ya se miro:
                     // si no, se volvia a mirar en cada arranque. Si un catalogo nuevo la trae, la
                     // version cambia y se mira otra vez.
-                    d = if (packs.isNotEmpty()) {
+                    // Pero solo si de verdad no hay paquete publicado para ella: si lo hay y no se ha
+                    // bajado (sin red, o una descarga cortada), se queda sin apuntar y se mira cuando
+                    // llegue. Apuntada, no se volvia a mirar hasta el catalogo siguiente, y sus juegos
+                    // seguian sin identificar (revision del 09-10-2026).
+                    if (packs.isNotEmpty()) {
                         progress(at, games.size, game.title)
-                        resolve(d, game, packs, version, texts)
-                    } else d.copy(fields = d.fields + ("cat" to version))
-                    changed = true
+                        d = resolve(d, game, packs, version, texts)
+                        changed = true
+                    } else if (GameDb.publishes(systemId) == false) {
+                        d = d.copy(fields = d.fields + ("cat" to version))
+                        changed = true
+                    }
                 }
                 if (d["name"] != null) found++
                 if (d.exact) exact++
                 all[game.path] = d
             }
-            if (changed) save(systemId, all)
+            if (changed) synchronized(edits) { save(systemId, withEdits(systemId, all)) }
         }
         GameDb.forget()
         return Report(read, found, exact, games.size)

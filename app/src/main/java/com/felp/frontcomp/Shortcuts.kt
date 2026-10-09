@@ -60,6 +60,12 @@ object Shortcuts {
                 "the pad's equivalent of holding a finger down on it.",
             Button.START,
         ),
+        SEARCH(
+            "Search",
+            "Find a game in every console by its name, and go to it. The magnifier at the top " +
+                "does the same with a finger.",
+            Button.Y,
+        ),
         APPS(
             "App drawer",
             "Every app on the device, with the emulators first.",

@@ -234,7 +234,7 @@ internal class ArtScraper(
     private val catalog: Catalog,
     private val prefs: Prefs? = null,
     private val sources: List<CoverSource> = listOf(
-        LibretroSource(), GameTdbSource(), SteamSource(), SwitchSource(), IgdbSource(),
+        LibretroSource(), GameTdbSource(), SteamSource(), IgdbSource(),
     ),
     private val mediaRoot: File = DataHome.file("media"),
     private val parallel: Int = 4,
@@ -385,7 +385,9 @@ internal class ArtScraper(
         }
 
         if (wantVideos) {
-            val pending = games.filter { catalog.byId[it.systemId] != null && !hasVideo(it, existing) }
+            // Mirar si ya hay video es ir a la tarjeta, juego por juego: fuera del hilo de la pantalla,
+            // que es donde corre la pasada (revision del 09-10-2026).
+            val pending = withContext(Dispatchers.IO) { games.filter { catalog.byId[it.systemId] != null && !hasVideo(it, existing) } }
             var tried = 0
             pending.map { game ->
                 async {
@@ -447,7 +449,7 @@ internal class ArtScraper(
         misses: MutableList<ScrapeMiss>,
     ): ScrapeOutcome {
         val dest = destinationFor(game)
-        if (dest.isFile || existing?.has(game) == true) return ScrapeOutcome.ALREADY_HAD
+        if (withContext(Dispatchers.IO) { dest.isFile } || existing?.has(game) == true) return ScrapeOutcome.ALREADY_HAD
 
         // Donde buscar: la consola de verdad, si la ficha dice otra que la de la carpeta.
         val look = lookIn(game, sys)

@@ -100,10 +100,13 @@ internal fun AppsWindow(vm: LibraryViewModel, onClose: () -> Unit, onToast: (Str
     val ctx = LocalContext.current
     // Sube al mover, ocultar, describir o desinstalar: la lista se lee de fuera de Compose.
     var revision by remember { mutableStateOf(0) }
-    val all = remember(vm.emulators, revision) { AppsRepo.list(ctx, vm.emulators, vm.prefs) }
+    // La lista, del modelo y leida en otro hilo (ver LibraryViewModel.apps): al abrir se pide de
+    // nuevo, por si se instalo o se quito algo, y mientras se ve la de la ultima vez.
+    LaunchedEffect(Unit) { vm.refreshApps(ctx) }
+    val all = vm.apps
     // Ordenar apps cambia también lo que hay en la consola de Android, que se lee en la
-    // pantalla de detrás: se avisa al modelo en el mismo sitio en que se toca.
-    val changed = { revision++; vm.refreshAndroidGames(ctx) }
+    // pantalla de detrás: la misma lectura pone al dia las dos.
+    val changed = { revision++; vm.refreshApps(ctx) }
     // Los iconos salen a disco en segundo plano, para la cadena de medallones. Una vez:
     // los que ya estan no se vuelven a escribir.
     LaunchedEffect(all) {
@@ -288,9 +291,7 @@ internal fun AppsWindow(vm: LibraryViewModel, onClose: () -> Unit, onToast: (Str
                             if (spin != null) {
                                 ConsoleTurntable(spin, Modifier.fillMaxWidth().aspectRatio(4f / 3f))
                             } else {
-                                val big = current?.let { a ->
-                                    remember(a.pkg) { AppsRepo.icon(ctx, a.pkg) }
-                                }
+                                val big = current?.let { a -> rememberAppIcon(a) }
                                 if (big != null) {
                                     androidx.compose.foundation.Image(
                                         bitmap = big.asImageBitmap(),
@@ -383,6 +384,21 @@ private fun TabBar(tab: AppSlot, counts: Map<AppSlot, Int>, onPick: (AppSlot) ->
 
 /* ---------------------------------------------------------------------------- celdas */
 
+/**
+ * El icono de una app, pintado en otro hilo la primera vez y guardado despues (ver AppsRepo.iconFor):
+ * al volver a una casilla, o al abrir el cajon otra vez, sale ya.
+ */
+@Composable
+private fun rememberAppIcon(app: AppEntry): android.graphics.Bitmap? {
+    val ctx = LocalContext.current
+    val icon by androidx.compose.runtime.produceState(AppsRepo.cachedIcon(app.pkg, app.updated), app.pkg, app.updated) {
+        if (value == null) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            AppsRepo.iconFor(ctx, app.pkg, app.updated)
+        }
+    }
+    return icon
+}
+
 @Composable
 private fun AppTile(
     app: AppEntry,
@@ -395,7 +411,7 @@ private fun AppTile(
     val ctx = LocalContext.current
     val t = LocalTheme.current
     val inventory = t.chrome == Chrome.RULES
-    val icon = remember(app.pkg) { AppsRepo.icon(ctx, app.pkg) }
+    val icon = rememberAppIcon(app)
     val pulse = if (inventory && selected) rememberCursorPulse() else null
 
     Column(

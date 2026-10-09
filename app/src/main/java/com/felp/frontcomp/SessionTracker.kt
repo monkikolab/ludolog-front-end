@@ -227,7 +227,6 @@ internal class SessionService : Service() {
         bucketMs = prefs.bucketMs.coerceAtLeast(sampleMs)
 
         device = android.os.Build.MODEL.orEmpty().ifEmpty { "handheld" }
-        if (!begin()) { stopSelf(); return START_NOT_STICKY }
 
         registerReceiver(
             screen,
@@ -240,7 +239,16 @@ internal class SessionService : Service() {
         val t = HandlerThread("session").also { it.start() }
         worker = t
         hand = Handler(t.looper).also {
+            // Abrir la fila es escribir en el cuaderno: aqui, en el hilo de las medidas, y no en el
+            // principal justo cuando arranca el emulador (revision del 09-10-2026).
             it.post {
+                if (!begin()) {
+                    hand?.removeCallbacksAndMessages(null)
+                    stopSelf()
+                }
+            }
+            it.post {
+                if (sessionId < 0) return@post
                 card(
                     intent?.getStringExtra(SessionTracker.EXTRA_TITLE),
                     intent?.getStringExtra(SessionTracker.EXTRA_SYSTEM),
@@ -317,7 +325,9 @@ internal class SessionService : Service() {
     private fun card(title: String?, system: String?, file: String?, device: String, mission: String?) {
         if (title.isNullOrBlank()) return
         runCatching {
-            val t = LogStats(book).played(device).game(system ?: "?", file.orEmpty(), title)
+            // Con las otras consolas, como la tarjeta de la lista: solo con esta, un juego jugado
+            // cinco veces en otra salia aqui como «first session» (revision del 09-10-2026).
+            val t = Logbook(applicationContext, withOthers = true).use { LogStats(it).played(device).game(system ?: "?", file.orEmpty(), title) }
             RecordingCard.show(
                 this,
                 RecordingCard.Note(
@@ -386,6 +396,8 @@ internal class SessionService : Service() {
         val at = SessionTracker.endAt.takeIf { it > startedAt } ?: System.currentTimeMillis()
         SessionTracker.endAt = 0L
         finish(at)
+        // Tambien si la fila no se llego a abrir: la conexion quedaba abierta (revision del 09-10-2026).
+        if (::book.isInitialized) runCatching { book.close() }
         super.onDestroy()
     }
 
@@ -413,6 +425,12 @@ internal class SessionService : Service() {
             runCatching { book.close() }
             return
         }
+
+        // El ultimo tramo, el que no llego a completar su resumen: se perdia, y una partida mas corta
+        // que un tramo (con «Stored every» en un minuto o mas) quedaba sin medidas (revision del
+        // 09-10-2026).
+        if (!bucket.isEmpty()) runCatching { book.sample(id, bucketAt, bucket.close()) }
+        bucket = Bucket()
 
         val r = whole.close()
         val endCharge = tel.chargeMicroAh(this)

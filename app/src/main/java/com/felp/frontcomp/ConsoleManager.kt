@@ -1,5 +1,8 @@
 package com.felp.frontcomp
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -174,7 +177,9 @@ internal fun ColumnScope.ConsoleEditPane(
     // Lo subido: se copia a los temas al guardar, no antes, que el id sale del nombre.
     var upload by remember { mutableStateOf<Pair<android.net.Uri, String>?>(null) }
 
-    val apps = remember(vm.emulators) { AppsRepo.list(ctx, vm.emulators, vm.prefs) }
+    // Del modelo, leidas en otro hilo (ver LibraryViewModel.apps), y otra vez al abrir.
+    androidx.compose.runtime.LaunchedEffect(Unit) { vm.refreshApps(ctx) }
+    val apps = vm.apps
     fun isRetroArch(pkg: String) =
         vm.emulators?.defs?.any { it.isRetroArch && (pkg == it.id || pkg in it.packages()) } == true
     val retro = isRetroArch(draft.emulatorId) ||
@@ -202,15 +207,25 @@ internal fun ColumnScope.ConsoleEditPane(
         else -> "none"
     }
 
+    // B (y el rotulo de la cabecera) en una subpagina vuelve a la consola que se esta editando: se
+    // iba a la lista de consolas y lo escrito sin guardar se perdia (revision del 09-10-2026). Como
+    // en las fuentes de arte (ScrapeSetup).
+    val backToEdit = { page = null }
     when (page) {
         "app" -> {
-            ConsoleAppPane(apps) { pkg ->
-                draft = draft.copy(emulatorId = pkg)
-                page = if (isRetroArch(pkg)) "core" else null
+            CompositionLocalProvider(LocalDismiss provides backToEdit) {
+                Column(Modifier.weight(1f).fillMaxWidth().padBack(backToEdit)) {
+                    ConsoleAppPane(apps) { pkg ->
+                        draft = draft.copy(emulatorId = pkg)
+                        page = if (isRetroArch(pkg)) "core" else null
+                    }
+                }
             }
             return
         }
         "core" -> {
+            CompositionLocalProvider(LocalDismiss provides backToEdit) {
+            Column(Modifier.weight(1f).fillMaxWidth().padBack(backToEdit)) {
             RetroCoreList(
                 title = "RETROARCH CORE",
                 subtitle = draft.name.ifEmpty { "new console" },
@@ -222,20 +237,34 @@ internal fun ColumnScope.ConsoleEditPane(
                 onPick = { draft = draft.copy(raCore = it ?: existing?.raCore.orEmpty()); page = null },
                 onOther = { editing = "core"; page = null },
             )
+            }
+            }
             return
         }
         "art" -> {
-            ConsoleArtPane(
-                vm, systemId, current = draft.art, uploaded = upload != null,
-                onUpload = { picker.launch(arrayOf("image/*", "video/*")) },
-                onPick = { draft = draft.copy(art = it); upload = null; page = null },
-            )
+            CompositionLocalProvider(LocalDismiss provides backToEdit) {
+                Column(Modifier.weight(1f).fillMaxWidth().padBack(backToEdit)) {
+                    ConsoleArtPane(
+                        vm, systemId, current = draft.art, uploaded = upload != null,
+                        // Sin quien abra documentos en el aparato, un aviso y no una caida (revision
+                        // del 09-10-2026).
+                        onUpload = {
+                            runCatching { picker.launch(arrayOf("image/*", "video/*")) }
+                                .onFailure { onToast("No app here can pick a file") }
+                        },
+                        onPick = { draft = draft.copy(art = it); upload = null; page = null },
+                    )
+                }
+            }
             return
         }
     }
 
     editing?.let { what ->
+        val backToRows = { editing = null }
         // La misma casilla que renombrar un juego: acepta con el boton del teclado.
+        CompositionLocalProvider(LocalDismiss provides backToRows) {
+        Column(Modifier.weight(1f).fillMaxWidth().padBack(backToRows)) {
         TextPage(
             title = when (what) { "name" -> "NAME"; "formats" -> "FILE FORMATS"; else -> "RETROARCH CORE" },
             initial = when (what) { "name" -> draft.name; "formats" -> draft.extensions; else -> draft.raCore },
@@ -254,10 +283,14 @@ internal fun ColumnScope.ConsoleEditPane(
                 editing = null
             },
         )
+        }
+        }
         return
     }
 
     val canDelete = systemId != null && CatalogWriter.isUserDefined(systemId)
+    var armDelete by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(selected) { armDelete = false }
     val rows = buildList {
         add(EditRow("Name", draft.name, "How the console is shown in the library.") { editing = "name" })
         add(EditRow("File formats", draft.extensions,
@@ -274,9 +307,12 @@ internal fun ColumnScope.ConsoleEditPane(
             action = true) {
             saveConsole(ctx, vm, systemId, existing, draft, upload, onToast, onDone)
         })
-        if (canDelete) add(EditRow("Delete my version", "",
+        // Con dos A, como borrar un juego: esta justo debajo de «Save», y una A de mas borraba el
+        // fichero, y con el la consola si era propia (revision del 09-10-2026).
+        if (canDelete) add(EditRow("Delete my version", if (armDelete) "press A again" else "",
             "Deletes your file. The console goes back to the shipped catalog, or disappears.",
             action = true) {
+            if (!armDelete) { armDelete = true; return@EditRow }
             CatalogWriter.delete(systemId!!)
             vm.reloadCatalog(ctx)
             onToast("Deleted")

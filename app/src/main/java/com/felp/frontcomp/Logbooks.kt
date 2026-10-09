@@ -80,16 +80,62 @@ internal object Logbooks {
      * lo escribe. Ademas puede estar llegando en ese momento por la sincronizacion. La copia
      * cuesta nada: son unos cientos de KB.
      */
+    @Synchronized
     fun readable(other: File): File {
+        // De a una (revision del 09-10-2026): la ventana del Companion abre tres lecturas a la vez, y
+        // las tres escribian el mismo .part; una borraba la copia a medias de otra y se enganchaba un
+        // fichero cortado.
         val copy = File(File(DataHome.context.cacheDir, DIR), other.name)
         if (copy.length() == other.length() && copy.lastModified() == other.lastModified()) return copy
         copy.parentFile?.mkdirs()
         val part = File(copy.path + ".part")
         other.copyTo(part, overwrite = true)
+        // Solo un cuaderno entero: uno que esta llegando, o que no es un cuaderno, no se engancha, y
+        // las cuentas siguen con el de esta consola y los demas.
+        if (!whole(part)) {
+            part.delete()
+            copy.delete()
+            error("${other.name} is not a whole Companion logbook")
+        }
         if (!part.renameTo(copy)) { part.copyTo(copy, overwrite = true); part.delete() }
         copy.setLastModified(other.lastModified())
         return copy
     }
+
+    /** Si [f] es un cuaderno entero: con sus dos tablas y sin paginas rotas. */
+    private fun whole(f: File): Boolean = runCatching {
+        android.database.sqlite.SQLiteDatabase.openDatabase(
+            f.path, null, android.database.sqlite.SQLiteDatabase.OPEN_READONLY, Logbook.KEEP,
+        ).use { db ->
+            val tables = db.rawQuery(
+                "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name IN ('sessions', 'samples')", null,
+            ).use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
+            tables == 2 && db.rawQuery("PRAGMA quick_check", null).use { c -> c.moveToFirst() && c.getString(0) == "ok" }
+        }
+    }.getOrDefault(false)
+
+    /** Una copia que dejo un sincronizador al chocar dos versiones: «Odin3-d55a (1).db». */
+    fun isConflictCopy(f: File): Boolean = Regex("""\(\d+\)\.db$""").containsMatchIn(f.name)
+
+    /**
+     * El numero fijo del cuaderno de otra consola, del que sale lo que se suma a sus partidas (ver
+     * Logbook.OTHER_OFFSET): su ID, el del nombre del fichero, leido en base 36. Salia de su sitio en
+     * la carpeta, y una consola nueva, o una copia de las que deja un sincronizador, corria los
+     * numeros de todas: el aviso de la ultima partida volvia a salir, y la ventana de una partida
+     * podia leer las medidas de otra (revision del 09-10-2026). Si dos comparten ID, la segunda va
+     * despues de todos los posibles.
+     */
+    fun slot(f: File, used: MutableSet<Long>): Long {
+        val id = ID_IN_NAME.find(f.name)?.groupValues?.get(1)?.lowercase()?.toLongOrNull(36)
+        val wanted = if (id != null) id + 1 else null
+        if (wanted != null && used.add(wanted)) return wanted
+        var n = SLOTS + 1
+        while (!used.add(n)) n++
+        return n
+    }
+
+    /** Los numeros que salen de un ID de cuatro letras en base 36. */
+    private const val SLOTS = 36L * 36 * 36 * 36
 
     /** Como se llama esta consola: su modelo, lo mismo que se apunta en cada partida. */
     fun model(): String = android.os.Build.MODEL.orEmpty().ifEmpty { "handheld" }

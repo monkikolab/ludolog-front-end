@@ -12,9 +12,12 @@ import java.net.URLEncoder
  * Las fuentes que no piden cuenta y aciertan igual.
  *
  * Las dos de aqui identifican el juego por un numero, no por su nombre: el de Steam lo
- * lleva dentro el propio fichero, y el de Switch lo lleva en el nombre entre corchetes.
- * Un numero no se parece a otro numero, asi que estas dos no pueden traer la caratula
- * equivocada, que es el unico error de un scraper que de verdad molesta.
+ * lleva dentro el propio fichero, y el de GameTDB viene en la ficha del catalogo. Un numero
+ * no se parece a otro numero, asi que estas dos no pueden traer la caratula equivocada, que
+ * es el unico error de un scraper que de verdad molesta.
+ *
+ * Hubo una tercera, la de Switch por el identificador de titulo del nombre del fichero, en
+ * tinfoil.media; se quito el 09-10-2026 porque daba 503 a todo. GameTDB cubre Switch.
  */
 
 /* ----------------------------------------------------------------------------- Steam */
@@ -82,19 +85,8 @@ internal class SteamSource : CoverSource {
     }
 }
 
-/* ---------------------------------------------------------------------------- Switch */
+/* --------------------------------------------------------------------------- GameTDB */
 
-/**
- * La caratula de un juego de Switch por su identificador de titulo.
- *
- * Los volcados llevan el identificador en el nombre, entre corchetes, porque es lo que el
- * aparato necesita para instalarlos. Son dieciseis digitos hexadecimales que terminan en
- * tres ceros —esos tres ceros son lo que distingue el juego base de sus actualizaciones y
- * de sus complementos, y solo el juego base tiene caratula propia.
- *
- * El que no lo lleve en el nombre no se resuelve aqui: pasa a la siguiente fuente, que
- * buscara por titulo.
- */
 /**
  * Las caratulas de GameTDB, por el ID que la ficha trae del catalogo: GameCube, Wii, Wii U, DS,
  * 3DS, PS3 y Switch.
@@ -153,24 +145,6 @@ internal class GameTdbSource : CoverSource {
             'I' to "IT", 'H' to "NL", 'U' to "AU", 'R' to "RU", 'W' to "ZH", 'C' to "ZH",
             'X' to "EN", 'Y' to "EN", 'Z' to "EN", 'L' to "EN", 'M' to "EN", 'V' to "EN",
         )
-    }
-}
-
-internal class SwitchSource : CoverSource {
-    override val id = "switch"
-    override val name = "Switch title id"
-
-    override fun ready(prefs: Prefs) = true
-    override fun applies(sys: SystemDef) = sys.id == "switch"
-
-    override suspend fun cover(sys: SystemDef, game: Game, name: String?): ByteArray? =
-        withContext(Dispatchers.IO) {
-            val titleId = TITLE_ID.find(game.fileName)?.value?.uppercase() ?: return@withContext null
-            httpBytes("https://tinfoil.media/ti/$titleId/512/512/")
-        }
-
-    private companion object {
-        val TITLE_ID = Regex("""\b[0-9A-Fa-f]{13}[0-9A-Fa-f]?000\b""")
     }
 }
 

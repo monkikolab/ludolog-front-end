@@ -41,14 +41,26 @@ internal class InputSurface(private val surface: Surface) {
             0x3142, 1,
             EGL14.EGL_NONE,
         )
-        EGL14.eglChooseConfig(display, spec, 0, configs, 0, 1, IntArray(1), 0)
+        val found = IntArray(1)
+        EGL14.eglChooseConfig(display, spec, 0, configs, 0, 1, found, 0)
+        // Sin formato grabable, sin contexto o sin ventana: se suelta lo abierto antes de rendirse.
+        // La superficie del codificador se quedaba sin soltar (revision del 09-10-2026).
+        val config = configs[0]
+        if (found[0] < 1 || config == null) giveUp("no recordable EGL config")
         context = EGL14.eglCreateContext(
-            display, configs[0], EGL14.EGL_NO_CONTEXT,
+            display, config, EGL14.EGL_NO_CONTEXT,
             intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE), 0,
         )
+        if (context == EGL14.EGL_NO_CONTEXT) giveUp("no EGL context")
         window = EGL14.eglCreateWindowSurface(
-            display, configs[0], surface, intArrayOf(EGL14.EGL_NONE), 0,
+            display, config, surface, intArrayOf(EGL14.EGL_NONE), 0,
         )
+        if (window == EGL14.EGL_NO_SURFACE) giveUp("no EGL window")
+    }
+
+    private fun giveUp(why: String): Nothing {
+        release()
+        error(why)
     }
 
     fun makeCurrent() = EGL14.eglMakeCurrent(display, window, window, context)

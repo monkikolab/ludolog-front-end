@@ -25,8 +25,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -445,8 +455,10 @@ internal fun VideoSurface(
         runCatching {
             player.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(file)))
             player.prepare()
-            // Con la aplicacion al fondo, al volver: ver PanelPlayers.startOrHold.
-            PanelPlayers.startOrHold(player)
+            // Quieto si toca estarlo: con el ahorro de bateria, al pasar a otra consola el giro
+            // nuevo se ponia a andar igual (revision del 09-10-2026). Preparado, enseña su primer
+            // fotograma. Con la aplicacion al fondo, al volver: ver PanelPlayers.startOrHold.
+            if (hold) player.pause() else PanelPlayers.startOrHold(player)
         }
     }
 
@@ -690,7 +702,11 @@ fun ConsoleTurntable(file: File, modifier: Modifier = Modifier) {
                     clip = true
                     alpha = if (ready) 1f else 0f
                     renderEffect = snapEffect(shader, box, source, tint)
-                },
+                    // Sin shader el recorte se hace al dibujar, y necesita su propia capa: ver
+                    // snapWithoutShader.
+                    if (shader == null) compositingStrategy = CompositingStrategy.Offscreen
+                }
+                .then(if (shader == null) Modifier.drawWithContent { snapWithoutShader(source, tint) } else Modifier),
         ) {
             // En reposo el giro se para en su fotograma: un video en bucle descodificandose sin
             // que nadie lo mire. Ver Motion.
@@ -700,6 +716,68 @@ fun ConsoleTurntable(file: File, modifier: Modifier = Modifier) {
             VideoSurface(file, onSize = { w, h -> source = IntSize(w, h); ready = true }, hold = idle || saver)
         }
     }
+}
+
+/**
+ * El giro sin shader, en Android 11 y 12 (el shader pide Android 13): lo mismo que SNAP_SHADER
+ * con lo que tiene cualquier lienzo.
+ *
+ * Sin esto se veia el fotograma entero: la consola aplastada arriba y su mascara, blanca, debajo
+ * (09-10-2026, en un emulador de Android 11). El recorte sale de la mascara igual que en el
+ * shader: se pinta la mitad de arriba estirada a toda la caja y encima, con DstIn, la de abajo
+ * subida a su sitio y pasada de claridad a alfa. Sin mascara, la propia imagen hace de mascara,
+ * como en el metodo viejo. Va en una capa propia (CompositingStrategy.Offscreen) porque DstIn
+ * recorta lo que ya hay pintado, y sin capa eso seria la sala entera.
+ *
+ * Se pierde el clavado a la rejilla del fichero (aqui escala el lienzo, suave) y el umbral es una
+ * rampa corta en vez de un escalon.
+ */
+private fun ContentDrawScope.snapWithoutShader(src: IntSize, tint: Color?) {
+    if (src.width <= 0) { drawContent(); return }
+    val packed = isPacked(src)
+    val h = size.height
+    val bounds = Rect(0f, 0f, size.width, h)
+    val canvas = drawContext.canvas
+    // La imagen, con el fosforo del tema si lo hay.
+    val picture = tint?.let { t -> Paint().apply { colorFilter = ColorFilter.colorMatrix(phosphorMatrix(t)) } }
+    if (picture != null) canvas.saveLayer(bounds, picture)
+    if (packed) withTransform({ scale(1f, 2f, pivot = Offset.Zero) }) { this@snapWithoutShader.drawContent() }
+    else drawContent()
+    if (picture != null) canvas.restore()
+    // Y el recorte.
+    canvas.saveLayer(bounds, Paint().apply {
+        blendMode = BlendMode.DstIn
+        colorFilter = ColorFilter.colorMatrix(if (packed) MASK_TO_ALPHA else LIGHT_TO_ALPHA)
+    })
+    if (packed) withTransform({ translate(top = -h); scale(1f, 2f, pivot = Offset.Zero) }) { this@snapWithoutShader.drawContent() }
+    else drawContent()
+    canvas.restore()
+}
+
+/** La mascara a alfa: una rampa corta alrededor de la mitad, que es donde corta el shader. */
+private val MASK_TO_ALPHA = ColorMatrix(
+    floatArrayOf(
+        0f, 0f, 0f, 0f, 0f,
+        0f, 0f, 0f, 0f, 0f,
+        0f, 0f, 0f, 0f, 0f,
+        6f, 0f, 0f, 0f, -637.5f,
+    ),
+)
+
+/** Sin mascara, el metodo viejo: lo casi negro, transparente. */
+private val LIGHT_TO_ALPHA = ColorMatrix(
+    floatArrayOf(
+        0f, 0f, 0f, 0f, 0f,
+        0f, 0f, 0f, 0f, 0f,
+        0f, 0f, 0f, 0f, 0f,
+        10f, 10f, 10f, 0f, 0f,
+    ),
+)
+
+/** El fosforo de SNAP_SHADER: la claridad de la imagen, en el color del tema. */
+private fun phosphorMatrix(t: Color): ColorMatrix {
+    fun row(c: Float) = (c * PHOSPHOR_GAIN).let { floatArrayOf(0.299f * it, 0.587f * it, 0.114f * it, 0f, 0f) }
+    return ColorMatrix(row(t.red) + row(t.green) + row(t.blue) + floatArrayOf(0f, 0f, 0f, 1f, 0f))
 }
 
 /**

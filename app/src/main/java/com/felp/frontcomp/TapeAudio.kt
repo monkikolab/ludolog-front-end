@@ -268,13 +268,14 @@ internal object TapeAudio {
             val totalUs = if (inFormat.containsKey(MediaFormat.KEY_DURATION)) {
                 inFormat.getLong(MediaFormat.KEY_DURATION)
             } else 0L
-            val rate = inFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-            val channels = inFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            // Los del contenedor, hasta que el descodificador diga los suyos (ver mas abajo).
+            var rate = inFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+            var channels = inFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
 
             // Se mezcla a mono ANTES de filtrar, asi que hace falta una sola pareja de
             // filtros y no una por canal. Un recorte de partida no tiene nada que contar en
             // estereo que merezca el doble de cuentas y el doble de bytes.
-            val stages = arrayOf(
+            var stages = arrayOf(
                 Biquad.highPass(HIGH_PASS_HZ, rate),
                 Biquad.highPass(HIGH_PASS_HZ, rate),
                 Biquad.lowPass(LOW_PASS_HZ, rate),
@@ -284,11 +285,11 @@ internal object TapeAudio {
             // mitad del destino. Sin el, lo que el origen tiene por encima de once kilohercios se
             // pliega al remuestrear —el interpolado recto no lo filtra— y vuelve como un siseo
             // metalico que el original no tenia. Con la cinta no hace falta: ya corta en 4,5.
-            val clean = arrayOf(
+            var clean = arrayOf(
                 Biquad.lowPass(ANTI_ALIAS_HZ, rate),
                 Biquad.lowPass(ANTI_ALIAS_HZ, rate),
             )
-            val resampler = Resampler(rate, OUT_RATE)
+            var resampler = Resampler(rate, OUT_RATE)
             // La sala va DESPUES de bajar la frecuencia: sus retardos se miden en muestras,
             // y a la mitad de muestras por segundo cuesta la mitad y suena igual.
             val room = Room(OUT_RATE)
@@ -396,7 +397,24 @@ internal object TapeAudio {
                 // 2. Del descodificador al filtro, y del filtro al codificador.
                 if (!decodedEnd) {
                     val slot = dec.dequeueOutputBuffer(info, TIMEOUT_US)
-                    if (slot >= 0) {
+                    if (slot == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                        // Lo que de verdad sale del descodificador. Un HE-AAC dice en el contenedor
+                        // 22050 Hz y mono, y sale a 44100 y en estereo: tratado como lo de fuera, el
+                        // sonido salia lento, grave y desfasado del video (revision del 09-10-2026).
+                        val out = dec.outputFormat
+                        val r = runCatching { out.getInteger(MediaFormat.KEY_SAMPLE_RATE) }.getOrDefault(rate)
+                        val c = runCatching { out.getInteger(MediaFormat.KEY_CHANNEL_COUNT) }.getOrDefault(channels)
+                        if (r != rate || c != channels) {
+                            rate = r
+                            channels = c
+                            stages = arrayOf(
+                                Biquad.highPass(HIGH_PASS_HZ, rate), Biquad.highPass(HIGH_PASS_HZ, rate),
+                                Biquad.lowPass(LOW_PASS_HZ, rate), Biquad.lowPass(LOW_PASS_HZ, rate),
+                            )
+                            clean = arrayOf(Biquad.lowPass(ANTI_ALIAS_HZ, rate), Biquad.lowPass(ANTI_ALIAS_HZ, rate))
+                            resampler = Resampler(rate, OUT_RATE)
+                        }
+                    } else if (slot >= 0) {
                         moved = android.os.SystemClock.elapsedRealtime()
                         val pcm = dec.getOutputBuffer(slot)
                         if (pcm != null && info.size > 0) {

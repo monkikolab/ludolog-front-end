@@ -99,6 +99,20 @@ internal fun LibraryViewModel.systemCard(id: String): Details {
     val book = played?.takeIf { prefs.logbook } ?: return d
     // Los favoritos no son una consola del cuaderno: lo suyo se suma juego a juego, cada uno
     // en la suya. Buscados como consola decian «Nothing played on this console yet».
+    // Los ultimos jugados: cual fue el ultimo y cuando, que es lo que uno quiere saber al encender.
+    if (id == RECENT_SYSTEM) {
+        val games = recent()
+        val last = games.firstOrNull()
+        val t = last?.let { book.game(it.systemId, it.fileName, bookTitle(it)) }
+        return d.copy(
+            text = if (last == null) "Nothing played yet." else buildString {
+                append("The games you played last, the latest first, to pick up where you left off.")
+                append("\nLast: ").append(displayTitle(last))
+                t?.let { append(", ").append(ago(it.lastAt)) }
+                append('.')
+            },
+        )
+    }
     if (id == FAVORITES_SYSTEM) {
         val favs = favorites()
         val tallies = favs.mapNotNull { g -> book.game(g.systemId, g.fileName, bookTitle(g))?.let { g to it } }

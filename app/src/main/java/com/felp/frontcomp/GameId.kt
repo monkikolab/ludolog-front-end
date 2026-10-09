@@ -202,12 +202,14 @@ internal object GameId {
             while (true) {
                 val n = fill(input, block)
                 if (n <= 0) break
-                val half = n / 2
-                for (i in 0 until minOf(half, 8192)) {
+                // Un bloque final mas corto tiene sus dos mitades en su propio largo, no a 8 KB: se
+                // leian bytes del bloque anterior y salia un CRC que no era (revision del 09-10-2026).
+                val half = minOf(n, block.size) / 2
+                for (i in 0 until half) {
                     out[i * 2 + 1] = block[i]
-                    out[i * 2] = block[8192 + i]
+                    out[i * 2] = block[half + i]
                 }
-                c.update(out, 0, minOf(half, 8192) * 2)
+                c.update(out, 0, half * 2)
                 if (n < block.size) break
             }
         }
@@ -233,10 +235,12 @@ internal object GameId {
         val out = ByteArray(body.size)
         var blk = 0
         while (blk < body.size) {
+            // Igual que en smdCrc: las mitades de un bloque final corto van en su propio largo; a 8 KB
+            // se salia del fichero y ese zip se quedaba sin CRC (revision del 09-10-2026).
             val half = minOf(8192, (body.size - blk) / 2)
             for (i in 0 until half) {
                 out[blk + i * 2 + 1] = body[blk + i]
-                out[blk + i * 2] = body[blk + 8192 + i]
+                out[blk + i * 2] = body[blk + half + i]
             }
             blk += 16384
         }

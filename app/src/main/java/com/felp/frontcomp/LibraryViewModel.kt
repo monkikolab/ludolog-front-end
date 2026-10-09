@@ -490,7 +490,11 @@ class LibraryViewModel(app: android.app.Application) : androidx.lifecycle.Androi
 
     /** El nombre a mostrar: el que el usuario puso, si lo hay. */
     fun displayName(sys: SystemDef?, systemId: String): String =
-        prefs.systemName(systemId) ?: sys?.name ?: if (systemId == FAVORITES_SYSTEM) "Favorites" else systemId
+        prefs.systemName(systemId) ?: sys?.name ?: when (systemId) {
+            FAVORITES_SYSTEM -> "Favorites"
+            RECENT_SYSTEM -> "Recently played"
+            else -> systemId
+        }
 
     /**
      * El nombre que se ve: el puesto a mano; si no, el del catalogo cuando identifico el juego
@@ -702,17 +706,74 @@ class LibraryViewModel(app: android.app.Application) : androidx.lifecycle.Androi
     /** Las apps que el usuario mandó a la consola de Android, como entradas de biblioteca. */
     var androidGames by mutableStateOf<List<Game>>(emptyList()); private set
 
-    fun refreshAndroidGames(ctx: Context) {
-        androidGames = AppsRepo.list(ctx, emulators, prefs)
-            .filter { !it.hidden && it.slot == AppSlot.GAME }
-            .map { it.asGame() }
+    fun refreshAndroidGames(ctx: Context) = refreshApps(ctx)
+
+    /**
+     * Las apps instaladas, como las da AppsRepo.list: el cajon, las apps ocultas, los emuladores
+     * sueltos y la consola de Android leen de aqui. Preguntarle al sistema por cada app (nombre,
+     * version, descripcion, tamaño) se hacia en el hilo de la pantalla cada vez que se abria una de
+     * esas ventanas y con cada A en el cajon, dos veces (revision del 09-10-2026). Ahora en otro
+     * hilo; mientras, se ve la lista de la ultima vez.
+     */
+    var apps by mutableStateOf<List<AppEntry>>(emptyList()); private set
+    private var appsRead = 0
+
+    /** Vuelve a leer las apps: al arrancar, al abrir una ventana que las enseña y tras cambiar una. */
+    fun refreshApps(ctx: Context) {
+        val app = ctx.applicationContext
+        val emus = emulators
+        val n = ++appsRead
+        viewModelScope.launch {
+            val list = withContext(Dispatchers.IO) { runCatching { AppsRepo.list(app, emus, prefs) }.getOrNull() }
+                ?: return@launch
+            // Solo la ultima pedida: dos seguidas pueden terminar al reves.
+            if (n != appsRead) return@launch
+            apps = list
+            androidGames = list.filter { !it.hidden && it.slot == AppSlot.GAME }.map { it.asGame() }
+        }
     }
 
     fun gamesOf(systemId: String): List<Game> = when (systemId) {
         ANDROID_SYSTEM -> androidGames
         FAVORITES_SYSTEM -> favorites()
+        RECENT_SYSTEM -> recent()
         else -> result?.bySystem?.get(systemId).orEmpty()
     }
+
+    /** Lo ultimo que se busco, para volver a la busqueda donde se dejo. Ver SearchWindow. */
+    var lastSearch: String = ""
+
+    /**
+     * Los ultimos jugados que estan en la biblioteca, el mas reciente primero: los de cualquier
+     * consola del cuaderno, tambien los jugados en otro aparato. Se casan por el fichero, que es como
+     * los apunta el cuaderno, y si no por el nombre del fichero; sin pasar por los nombres que se ven,
+     * que con miles de juegos seria leer todas las fichas en cada movimiento. Guardado mientras no
+     * cambie lo que lo decide.
+     */
+    fun recent(): List<Game> {
+        val book = played?.takeIf { prefs.logbook } ?: return emptyList()
+        // Por identidad y no por igualdad: comparar la biblioteca entera en cada movimiento del
+        // cursor costaba mas que rehacer la fila.
+        val memo = recentMemo
+        if (memo != null && memo.book === book && memo.lib === result && memo.apps === androidGames) return memo.games
+        val libs = HashMap<String, Map<String, Game>>()
+        val out = ArrayList<Game>()
+        for ((system, g) in book.latest()) {
+            val lib = libs.getOrPut(system) {
+                gamesOf(system).associateBy { fileKey(it.fileName) }
+            }
+            val hit = g.files.firstNotNullOfOrNull { lib[it] }
+                ?: lib.values.firstOrNull { it.title in g.names }
+                ?: continue
+            if (hit !in out) out += hit
+            if (out.size >= RECENT_MAX) break
+        }
+        recentMemo = RecentMemo(book, result, androidGames, out)
+        return out
+    }
+
+    private class RecentMemo(val book: Any?, val lib: Any?, val apps: Any?, val games: List<Game>)
+    private var recentMemo: RecentMemo? = null
 
     /** Los juegos marcados como favoritos, de todas las consolas, por nombre. */
     fun favorites(): List<Game> =
@@ -873,10 +934,24 @@ class LibraryViewModel(app: android.app.Application) : androidx.lifecycle.Androi
      * El genero de un juego puesto a mano, o nulo para volver al del catalogo. Va a su ficha, y de
      * ahi a la referencia del cuaderno, para que las otras consolas lo lean con sus partidas.
      */
+    /** [work] en otro hilo y despues un repaso automatico (sin «Fetch after scanning»). */
+    fun inBackgroundThenScan(work: () -> Unit) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { work() }
+            scan(auto = true)
+        }
+    }
+
     fun setGenre(game: Game, genre: String?) {
-        Dossiers.setOwn(game, "my.genre", genre)
-        LinkEdits.game(getApplication(), game, "genre", genre)
-        dossierRevision++
+        // Reescribe las fichas de toda la consola, sinopsis incluidas: en otro hilo (revision del
+        // 09-10-2026).
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                Dossiers.setOwn(game, "my.genre", genre)
+                LinkEdits.game(getApplication(), game, "genre", genre)
+            }
+            dossierRevision++
+        }
     }
 
     /**
@@ -905,11 +980,16 @@ class LibraryViewModel(app: android.app.Application) : androidx.lifecycle.Androi
         // puede mandarle apps. Al ordenar por tamaño se queda la última hasta que tenga
         // algo, y quien no la quiera la esconde como cualquier otra.
         merged[ANDROID_SYSTEM] = androidGames
-        // Los favoritos, primero y solo si hay alguno: son lo que uno viene a buscar.
+        // Los ultimos jugados, arriba de todo, y despues los favoritos; cada fila solo si tiene algo.
+        val recent = recent()
         val favs = favorites()
-        return (if (favs.isEmpty()) emptyList() else listOf(FAVORITES_SYSTEM to favs)) + merged.entries
+        return (if (recent.isEmpty()) emptyList() else listOf(RECENT_SYSTEM to recent)) +
+            (if (favs.isEmpty()) emptyList() else listOf(FAVORITES_SYSTEM to favs)) + merged.entries
             .filterNot { prefs.isSystemHidden(it.key) }
             .sortedByDescending { it.value.size }
             .map { it.key to it.value }
     }
 }
+
+/** Los que caben en la fila de los ultimos jugados. */
+private const val RECENT_MAX = 15

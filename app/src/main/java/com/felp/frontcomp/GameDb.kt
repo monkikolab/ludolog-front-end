@@ -391,6 +391,15 @@ internal object GameDb {
         return pub.any { e -> e.systems.any { it in systems } && have[e.file]?.sha1 != e.sha1 }
     }
 
+    /**
+     * Si el ultimo indice publicado que se leyo trae un paquete de juegos para [systemId]. Nulo si
+     * nunca se leyo ninguno: entonces no se sabe.
+     */
+    fun publishes(systemId: String, root: File = dir): Boolean? {
+        val pub = runCatching { parseIndex(File(root, PUBLISHED).readText()) }.getOrNull() ?: return null
+        return pub.any { it.kind == "games" && systemId in it.systems }
+    }
+
     /** Lo que ocuparian los paquetes de estas consolas, en bytes. */
     fun sizeFor(entries: List<Entry>, systems: Set<String>): Long =
         entries.filter { e -> e.systems.any { it in systems } }.sumOf { it.bytes }

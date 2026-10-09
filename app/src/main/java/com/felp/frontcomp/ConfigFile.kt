@@ -47,25 +47,40 @@ internal class ConfigFile private constructor(
     /** Si ya hay una escritura en cola: varias `apply` seguidas se quedan en una. */
     private var queued = false
 
+    /**
+     * Lo que hay en el fichero: lo leido al abrir y despues lo ultimo escrito. Con writeLock.
+     *
+     * Si lo que se va a escribir es igual, no se escribe. Al arrancar se guardaba cinco veces en
+     * menos de un segundo sin que cambiara nada, y cada vez es un fichero nuevo renombrado
+     * encima del anterior. En Android 11 eso puede tirar el servicio de ficheros del sistema —un
+     * fallo suyo al buscar un fichero mientras otro lo sustituye— y con el se cae la app
+     * (09-10-2026, en un emulador de Android 11).
+     */
+    private var onDisk: Map<String, Any?> = HashMap(initial)
+
     override fun getAll(): MutableMap<String, *> = synchronized(lock) { HashMap(map) }
 
+    // Sin fiarse del tipo: el fichero se corrige a mano y Link lo cambia desde el PC, y un
+    // «<string name="look.fps">30</string>» donde se esperaba un numero tiraba la aplicacion en cada
+    // arranque. Lo que no es del tipo pedido se lee si se puede y, si no, vale lo de fabrica
+    // (revision del 09-10-2026).
     override fun getString(key: String, defValue: String?): String? =
-        synchronized(lock) { map[key] as String? } ?: defValue
+        when (val v = synchronized(lock) { map[key] }) { null -> defValue; is String -> v; else -> v.toString() }
 
     override fun getStringSet(key: String, defValues: MutableSet<String>?): MutableSet<String>? =
-        synchronized(lock) { (map[key] as Set<*>?)?.mapTo(HashSet()) { it as String } } ?: defValues
+        (synchronized(lock) { map[key] } as? Set<*>)?.mapNotNullTo(HashSet()) { it as? String } ?: defValues
 
     override fun getInt(key: String, defValue: Int): Int =
-        synchronized(lock) { map[key] as Int? } ?: defValue
+        when (val v = synchronized(lock) { map[key] }) { is Int -> v; is Number -> v.toInt(); is String -> v.trim().toIntOrNull() ?: defValue; else -> defValue }
 
     override fun getLong(key: String, defValue: Long): Long =
-        synchronized(lock) { map[key] as Long? } ?: defValue
+        when (val v = synchronized(lock) { map[key] }) { is Long -> v; is Number -> v.toLong(); is String -> v.trim().toLongOrNull() ?: defValue; else -> defValue }
 
     override fun getFloat(key: String, defValue: Float): Float =
-        synchronized(lock) { map[key] as Float? } ?: defValue
+        when (val v = synchronized(lock) { map[key] }) { is Float -> v; is Number -> v.toFloat(); is String -> v.trim().toFloatOrNull() ?: defValue; else -> defValue }
 
     override fun getBoolean(key: String, defValue: Boolean): Boolean =
-        synchronized(lock) { map[key] as Boolean? } ?: defValue
+        when (val v = synchronized(lock) { map[key] }) { is Boolean -> v; is String -> v.trim().toBooleanStrictOrNull() ?: defValue; else -> defValue }
 
     override fun contains(key: String): Boolean = synchronized(lock) { key in map }
 
@@ -99,8 +114,9 @@ internal class ConfigFile private constructor(
         override fun clear() = also { clear = true }
 
         override fun apply() {
-            announce(toMemory())
-            queueWrite()
+            val touched = toMemory()
+            announce(touched)
+            if (touched.isNotEmpty()) queueWrite()
         }
 
         override fun commit(): Boolean {
@@ -148,7 +164,9 @@ internal class ConfigFile private constructor(
 
     private fun writeNow(t: AtomicFile): Boolean = synchronized(writeLock) {
         val snapshot = synchronized(lock) { HashMap(map) }
+        if (snapshot == onDisk) return@synchronized true
         runCatching { write(t, snapshot) }
+            .onSuccess { onDisk = snapshot }
             .onFailure { android.util.Log.e("Ludolog", "config: ${it.message}") }
             .isSuccess
     }

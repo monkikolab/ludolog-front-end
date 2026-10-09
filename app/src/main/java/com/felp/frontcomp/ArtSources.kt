@@ -462,8 +462,14 @@ internal class IgdbSource : CoverSource {
             readTimeout = 20_000
             setRequestProperty("User-Agent", "Ludolog")
         }
-        if (c.responseCode != HttpURLConnection.HTTP_OK) null
-        else c.inputStream.use { it.readBytes() }.takeIf { it.size > 500 }
+        try {
+            if (c.responseCode != HttpURLConnection.HTTP_OK) null
+            else c.inputStream.use { it.readBytes() }.takeIf { it.size > 500 }
+        } finally {
+            // Tambien en un error: la conexion quedaba abierta hasta que pasara el recolector
+            // (revision del 09-10-2026).
+            c.disconnect()
+        }
     }.getOrNull()
 
     /**

@@ -1173,6 +1173,11 @@ internal class LogStats(
 
         fun console(system: String): List<GamePlayed> = bySystem[system].orEmpty()
 
+        /** Todos los juegos con su consola, el jugado mas recientemente primero. */
+        fun latest(): List<Pair<String, GamePlayed>> =
+            bySystem.flatMap { (system, games) -> games.map { system to it } }
+                .sortedByDescending { it.second.tally.lastAt }
+
         fun game(system: String, file: String, name: String): Tally? {
             val key = fileKey(file)
             return bySystem[system]?.firstOrNull { key in it.files || name in it.names }?.tally

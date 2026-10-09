@@ -367,9 +367,14 @@ object SettingsModel {
             value = tvMediaSummary(tv),
             // Con una descarga en marcha no: borraba los videos recien bajados y sus .part.
             enabled = !vm.busy && tv.isNotEmpty(),
+            // Con dos A: borra todos los videos bajados, y con una sola se iban (revision del
+            // 09-10-2026).
+            confirm = "press A again",
             // Y se vuelve a mirar la biblioteca. Sin esto el indice sigue creyendo que los
-            // videos estan ahi, y la fila de descarga se queda apagada porque no falta nada.
-            run = { clearTvMedia(); vm.scan() },
+            // videos estan ahi, y la fila de descarga se queda apagada porque no falta nada. En
+            // otro hilo, y como repaso automatico: el pedido a mano, con «Fetch after scanning»,
+            // se ponia a bajar otra vez todo lo recien borrado.
+            run = { vm.inBackgroundThenScan { clearTvMedia() } },
         )
 
         // ----------------------------------------------------------------- consoles
@@ -438,12 +443,12 @@ object SettingsModel {
         )
 
         // Con una segunda A. Borra de todo —nombres, descripciones, emuladores elegidos, atajos,
-        // carpetas y las claves de IGDB y ScreenScraper, que hay que volver a escribir a mano—, y
+        // carpetas y las claves de IGDB, que hay que volver a escribir a mano—, y
         // con una sola pulsacion bastaba un toque de mas al bajar por la pestana.
         data += SettingItem.Action(
             title = "Clear preferences",
             description = "Leaves the app as freshly installed: names, descriptions, chosen " +
-                "emulators, shortcuts, folders and the IGDB and ScreenScraper keys. Touches no " +
+                "emulators, shortcuts, folders and the IGDB keys. Touches no " +
                 "ROMs, no box art and no logbook.",
             confirm = "press A again",
             run = { prefs.clearAll() },

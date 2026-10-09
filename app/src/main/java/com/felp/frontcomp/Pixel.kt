@@ -38,6 +38,21 @@ fun PixelIcon(rows: List<String>, color: Color, scale: Int = 3, modifier: Modifi
 
 /** Los iconos de la barra de arriba: lo que dice el estado del aparato sin una palabra. */
 object PixelIcons {
+    /** La lupa de la busqueda, al lado del engranaje. */
+    val search = listOf(
+        "..####.....",
+        ".#....#....",
+        "#......#...",
+        "#......#...",
+        "#......#...",
+        "#......#...",
+        ".#....#....",
+        "..####.#...",
+        ".......##..",
+        "........##.",
+        ".........##",
+    )
+
     val gear = listOf(
         "....###....",
         "..#.###.#..",

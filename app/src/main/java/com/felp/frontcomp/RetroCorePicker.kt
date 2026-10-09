@@ -121,7 +121,7 @@ internal fun ColumnScope.RetroCoreList(
             }
             else -> "Type the name of a core that is not in the list."
         },
-        hint = "A  choose      B  back",
+        hint = CORE_HINT,
     ) {
         ModalRows(
             count = rows,
@@ -192,10 +192,14 @@ internal fun RetroCorePicker(vm: LibraryViewModel, systemId: String, game: Game?
         )
         return
     }
-    ModalWindow(onDismiss = onClose, widthFraction = 0.50f, heightFraction = 0.74f) {
+    val subtitle = if (game != null) vm.displayTitle(game) else vm.displayName(vm.catalog?.byId?.get(systemId), systemId)
+    // Tan ancha como pida el titulo con el juego y la pista al lado: con la mitad fija, el nombre de
+    // un juego largo dejaba «RETROARCH CORE» partido a media palabra en dos lineas (09-10-2026).
+    val wide = headerFraction("RETROARCH CORE", subtitle, CORE_HINT, min = 0.50f)
+    ModalWindow(onDismiss = onClose, widthFraction = wide, heightFraction = 0.74f) {
         RetroCoreList(
             title = "RETROARCH CORE",
-            subtitle = if (game != null) vm.displayTitle(game) else vm.displayName(vm.catalog?.byId?.get(systemId), systemId),
+            subtitle = subtitle,
             systemId = systemId,
             catalogCore = catalogCore,
             defaultLabel = if (game != null) "Same as the console" else "Catalog default",
@@ -206,3 +210,5 @@ internal fun RetroCorePicker(vm: LibraryViewModel, systemId: String, game: Game?
         )
     }
 }
+
+private const val CORE_HINT = "A  choose      B  back"

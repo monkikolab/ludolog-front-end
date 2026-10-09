@@ -1,5 +1,6 @@
 package com.felp.frontcomp
 
+import kotlinx.coroutines.launch
 import android.view.MotionEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -288,6 +289,7 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
     var armed by remember { mutableStateOf<Long?>(null) }
     // Sube al borrar, y con eso se vuelve a leer todo: los totales cambian.
     var revision by remember { mutableIntStateOf(0) }
+    val forgetting = androidx.compose.runtime.rememberCoroutineScope()
     val top = stack.lastOrNull()
 
     // B cierra las opciones, si no quita el ultimo nivel, y con todo vacio cierra.
@@ -451,6 +453,10 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
                     }
                     return@onKeyEvent false
                 }
+                // Y se come tambien al bajar, como Start y Select en la raiz: sin eso Android la da
+                // por no atendida y manda su equivalente, que en la RP5 es Atras, y cerraba el
+                // cuaderno en vez de olvidar la partida (09-10-2026).
+                if (e.key == Key.ButtonY && e.type == KeyEventType.KeyDown) return@onKeyEvent true
                 if (e.type != KeyEventType.KeyUp) return@onKeyEvent false
                 when {
                     // Select abre las opciones de ESTA pestana, que es donde uno las busca.
@@ -463,10 +469,16 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
                     e.key == Key.ButtonY && top is View.Session && Logbook.isOwn(top.entry.id) -> {
                         val id = top.entry.id
                         if (armed == id) {
-                            runCatching { Logbook(ctx).use { it.forget(id) } }
                             armed = null
                             stack = stack.dropLast(1)
-                            revision++
+                            // Borrar del cuaderno en otro hilo (revision del 09-10-2026); despues se
+                            // vuelve a leer todo, que los totales cambian.
+                            forgetting.launch {
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    runCatching { Logbook(ctx).use { it.forget(id) } }
+                                }
+                                revision++
+                            }
                         } else {
                             armed = id
                         }
@@ -517,7 +529,14 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
         // Tambien al cerrarse las pestanas o las opciones: se llevan el foco, y en una pagina
         // sin filas nadie lo recogia. B, los hombros y Select dejaban de llegar a la ventana,
         // y el cuaderno ya no se cerraba.
-        AutoFocus(anchor, enabled = !hasList && !tabs && !options)
+        //
+        // Y al cambiar de vista: al abrir una partida desde la portada desaparece la lista que tenia
+        // el foco, y como la condicion no cambiaba nadie lo recogia. Sin foco, Y no llegaba y Android
+        // la convertia en Atras, que cerraba el cuaderno en vez de olvidar la partida (09-10-2026).
+        val anchorWanted = !hasList && !tabs && !options
+        androidx.compose.runtime.LaunchedEffect(anchorWanted, top) {
+            if (anchorWanted) runCatching { anchor.requestFocus() }
+        }
         FocusAnchor(anchor)
 
         // Con una ventana delante, todo lo de detras sale de la navegacion. Sin esto las
@@ -750,16 +769,23 @@ private fun OptionsWindow(prefs: Prefs, onClose: () -> Unit) {
 
     // Mas ancha de lo que pide la lista: el titulo entero cabe en una linea, y partido en
     // dos —«THE» arriba y «RECKONING» debajo— la ventana empezaba con un tropiezo.
-    ModalWindow(onDismiss = { if (card) card = false else onClose() }, widthFraction = 0.60f, heightFraction = 0.78f) {
+    // El nombre sale de la constante y no escrito a mano: es lo que quedaba del nombre viejo, y con
+    // dos sitios distintos el menu decia «Companion» y sus opciones «The Reckoning», como si fueran
+    // dos herramientas.
+    val title = if (card) "SESSION CARD" else COMPANION_NAME.uppercase()
+    val subtitle = if (card) (if (prefs.overlay) "on" else "off") else "options"
+    // Tan ancha como pida el titulo con su pista, por si un tema lo escribe mas ancho (09-10-2026).
+    val wide = headerFraction(title, subtitle, "A  change      B  back", min = 0.60f)
+    ModalWindow(onDismiss = { if (card) card = false else onClose() }, widthFraction = wide, heightFraction = 0.78f) {
         WindowFrame(
-            // El nombre sale de la constante y no escrito a mano: es lo que quedaba del nombre
-            // viejo, y con dos sitios distintos el menu decia «Companion» y sus opciones «The
-            // Reckoning», como si fueran dos herramientas.
-            title = if (card) "SESSION CARD" else COMPANION_NAME.uppercase(),
-            subtitle = if (card) (if (prefs.overlay) "on" else "off") else "options",
+            title = title,
+            subtitle = subtitle,
             description = items.getOrNull(sel)?.description.orEmpty(),
             hint = "A  change      B  back",
         ) {
+            // Cada lista la suya: con la misma, la de la tarjeta se abria con el foco donde estaba en
+            // la de antes.
+            androidx.compose.runtime.key(card) {
             ModalRows(
                 count = items.size,
                 selected = sel,
@@ -775,6 +801,7 @@ private fun OptionsWindow(prefs: Prefs, onClose: () -> Unit) {
                 val item = items[index]
                 // En la tarjeta, las lineas que no salen mientras la tarjeta este apagada.
                 ModalRow(label = item.title, value = item.value, dimmed = card && item is SettingItem.Action)
+            }
             }
         }
     }

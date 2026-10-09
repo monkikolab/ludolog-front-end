@@ -53,8 +53,6 @@ class CatalogWriterTest {
             label = "PRUEBA",
             raName = "Fabricante - Consola",
             raCore = "nucleo",
-            accent = 0xff123456,
-            boxAspect = 0.7f,
             zipOk = false,
             extensions = setOf("abc", "de"),
             aliases = setOf("otra", "mas"),

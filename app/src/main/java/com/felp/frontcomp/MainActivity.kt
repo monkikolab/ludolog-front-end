@@ -201,7 +201,8 @@ internal const val LINK_LABEL = "LUDOLOG LINK"
  * Va en una funcion porque hay DOS caminos hasta ese menu —el boton del mando y el toque
  * mantenido— y una regla escrita dos veces acaba siendo dos reglas.
  */
-private fun menuTarget(system: String?): String? = system?.takeIf { it != RECKONING_SYSTEM && it != LINK_SYSTEM }
+private fun menuTarget(system: String?): String? =
+    system?.takeIf { it != RECKONING_SYSTEM && it != LINK_SYSTEM && it != RECENT_SYSTEM }
 
 /** Lo que tiene que quedarse el front-end delante para que cuente como vuelta de un juego. */
 private const val RETURN_CONFIRM_MS = 3_000L
@@ -249,6 +250,8 @@ internal fun settingsKeys(prefs: Prefs) = Shortcuts.keys(prefs, Shortcuts.Action
 
 internal fun quickMenuKeys(prefs: Prefs) = Shortcuts.keys(prefs, Shortcuts.Action.QUICK_MENU)
 
+internal fun searchKeys(prefs: Prefs) = Shortcuts.keys(prefs, Shortcuts.Action.SEARCH)
+
 /** El de fabrica, para las pantallas que no tienen las preferencias a mano. */
 internal val SETTINGS_KEYS = Shortcuts.Action.SETTINGS.fallback.keys
 
@@ -257,7 +260,8 @@ internal class BooleanHolder(var value: Boolean)
 
 private sealed interface Screen {
     data object Systems : Screen
-    data class Games(val systemId: String) : Screen
+    /** [focus]: el juego en que empezar, por su ruta (el elegido en la busqueda). */
+    data class Games(val systemId: String, val focus: String? = null) : Screen
 }
 
 class MainActivity : ComponentActivity() {
@@ -522,6 +526,8 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
     // cuenta como ventana modal para todo lo demas: mientras esta, nada mas responde.
     var statsOpen by remember { mutableStateOf(false) }
     var appsOpen by remember { mutableStateOf(false) }
+    // Buscar un juego en todas las consolas: ver SearchWindow.
+    var searchOpen by remember { mutableStateOf(false) }
     var menuFor by remember { mutableStateOf<Any?>(null) }   // String (consola) o Game
 
     // Lo que hay seleccionado ahora mismo, que la raíz necesita para saber sobre qué abrir
@@ -530,7 +536,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
     var currentGame by remember { mutableStateOf<Game?>(null) }
 
     val showReport = vm.reportOpen && vm.report != null
-    val anyModal = settingsOpen || appsOpen || menuFor != null || showReport || statsOpen ||
+    val anyModal = settingsOpen || appsOpen || searchOpen || menuFor != null || showReport || statsOpen ||
         vm.coverHunt != null || vm.videoHunt != null || vm.saveCheck != null
     // La segunda pantalla: con ella la lista va abajo y sus teclas tambien, salvo con una ventana
     // encima. Ver DualScreen.
@@ -575,8 +581,15 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
         // en su ultima medida, ver Logbook.closeUnfinished. Salvo que haya una en marcha: si la
         // pantalla se rehizo con el proceso vivo, su servicio sigue midiendo y la cerrara el. Sin
         // esta condicion, rehacerse la pantalla a mitad de partida la borraba.
-        if (!SessionTracker.recording) runCatching {
-            Logbook(ctx).use { it.closeUnfinished(vm.prefs.minSessionSeconds * 1000L) }
+        //
+        // En otro hilo: es escribir en el cuaderno, y se hacia en el de la pantalla al arrancar
+        // (revision del 09-10-2026). Si cerro alguna, las cuentas se vuelven a leer.
+        if (!SessionTracker.recording) {
+            val least = vm.prefs.minSessionSeconds * 1000L
+            val closed = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { Logbook(ctx).use { it.closeUnfinished(least) } }.getOrDefault(false)
+            }
+            if (closed) SessionTracker.written++
         }
         TapeQueue.sweep(ArtIndex.defaultRoots())
     }
@@ -662,6 +675,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
             vm.videoHunt != null -> vm.dropVideoHunt()
             menuFor != null -> menuFor = null
             appsOpen -> appsOpen = false
+            searchOpen -> searchOpen = false
             settingsOpen -> settingsOpen = false
             // Solo llega aqui si el cuaderno se quedo sin foco: con foco, B lo gestiona el
             // mismo nivel a nivel. Sin esta linea cambiaba la pantalla de debajo y el cuaderno
@@ -678,7 +692,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
     // Orden de consolas, para que los gatillos sepan cuál es la anterior y la siguiente.
     // Con las ocultas tambien: sin ellas en la clave, esconder una consola la dejaba en el
     // salto de los hombros hasta el siguiente repaso de la biblioteca.
-    val systemOrder = remember(vm.result, vm.androidGames, vm.prefs.hiddenSystems, vm.prefs.favoriteRevision) {
+    val systemOrder = remember(vm.result, vm.androidGames, vm.prefs.hiddenSystems, vm.prefs.favoriteRevision, vm.played, vm.prefs.logbook) {
         vm.libraryGroups().map { it.first }
     }
     fun jumpSystem(from: String, step: Int) {
@@ -750,6 +764,12 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
                     // de teclas generico— con lo que sobre el cuaderno, en vez de no hacer
                     // nada, lo abria. Un atajo que no aplica tiene que no hacer nada, no
                     // hacer otra cosa.
+                    // Buscar, con su atajo (Y de fabrica). Comida tambien al pulsar, como Start: sin
+                    // ella Android la da por no atendida y en algunos mandos manda Atras.
+                    e.key in searchKeys(vm.prefs) && !anyModal -> {
+                        if (e.type == KeyEventType.KeyUp) searchOpen = true
+                        true
+                    }
                     e.key in quickMenuKeys(vm.prefs) && !anyModal -> {
                         if (e.type == KeyEventType.KeyUp) menuFor = when (screen) {
                             is Screen.Systems -> menuTarget(currentSystem)
@@ -914,7 +934,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
         }
 
         Column(Modifier.fillMaxSize()) {
-            TopBar(vm, onSettings = { settingsOpen = true })
+            TopBar(vm, onSettings = { settingsOpen = true }, onSearch = { if (!anyModal) searchOpen = true })
             // Con la lista en la pantalla de abajo, algo de arriba tiene que quedarse el foco: los
             // acordes (L+R, L2+R2) los lee la raiz, y solo le llegan con el foco dentro de ella.
             if (dual != null) {
@@ -938,17 +958,22 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
                         refocus = anyModal to dual?.displayId,
                         enabled = !anyModal,
                         onSelectionChange = { currentSystem = it },
-                        onLongPress = { menuTarget(currentSystem)?.let { menuFor = it } },
+                        onLongPress = { sys -> menuTarget(sys)?.let { menuFor = it } },
                     )
-                    is Screen.Games -> GamesMenu(
-                        vm, s.systemId,
-                        onBack = { screen = Screen.Systems },
-                        refocus = anyModal to dual?.displayId,
-                        enabled = !anyModal,
-                        onPlay = { g -> toast = vm.play(ctx, g) },
-                        onSelectionChange = { currentGame = it },
-                        onLongPress = { currentGame?.let { menuFor = it } },
-                    )
+                    // Con la pantalla de clave: una busqueda que lleva a la misma consola en que se
+                    // estaba empieza en el juego elegido y no donde estaba el cursor.
+                    is Screen.Games -> androidx.compose.runtime.key(s) {
+                        GamesMenu(
+                            vm, s.systemId,
+                            onBack = { screen = Screen.Systems },
+                            refocus = anyModal to dual?.displayId,
+                            enabled = !anyModal,
+                            onPlay = { g -> toast = vm.play(ctx, g) },
+                            onSelectionChange = { currentGame = it },
+                            onLongPress = { g -> menuFor = g },
+                            focus = s.focus,
+                        )
+                    }
                 }
             }
 
@@ -991,6 +1016,15 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
                         onToast = { toast = it },
                     )
                     statsOpen -> StatsWindow(vm) { statsOpen = false }
+                    searchOpen -> SearchWindow(
+                        vm,
+                        onPick = { g ->
+                            searchOpen = false
+                            // Al volver con B, la lista de consolas queda en la suya.
+                            currentSystem = g.systemId
+                            screen = Screen.Games(g.systemId, focus = g.path)
+                        },
+                    ) { searchOpen = false }
                     settingsOpen -> SettingsWindow(vm, onToast = { toast = it }) { settingsOpen = false }
                 }
             }

@@ -53,7 +53,8 @@ internal fun SystemsMenu(
     refocus: Any?,
     enabled: Boolean,
     onSelectionChange: (String?) -> Unit,
-    onLongPress: () -> Unit,
+    /** Pulsacion larga sobre una fila: su consola (o el cuaderno o Link). */
+    onLongPress: (String?) -> Unit,
 ) {
     val res = vm.result
     val cat = vm.catalog
@@ -66,7 +67,7 @@ internal fun SystemsMenu(
     // Las consolas ocultas desde su menú contextual no aparecen, pero sus juegos siguen
     // en la biblioteca: ocultar es una decisión de la vista, no un borrado. La de Android
     // entra aquí con las demás cuando hay alguna app mandada a ella.
-    val groups = remember(res, vm.androidGames, vm.prefs.hiddenSystems, vm.prefs.favoriteRevision) { vm.libraryGroups() }
+    val groups = remember(res, vm.androidGames, vm.prefs.hiddenSystems, vm.prefs.favoriteRevision, vm.played, vm.prefs.logbook) { vm.libraryGroups() }
     // El cuaderno va al final de la lista de consolas, y solo si esta encendido.
     //
     // Al final y no al principio: es lo ultimo que se mira, no lo primero. Y en la lista de
@@ -149,7 +150,7 @@ internal fun SystemsMenu(
             else if (onLink) LinkSaveCheck.openHome(ctx)
             else current?.let { onOpen(it.first) }
         },
-        onLongPress = onLongPress,
+        onLongPress = { i -> onLongPress(groups.getOrNull(i)?.first ?: extras.getOrNull(i - groups.size)) },
         refocus = refocus,
         enabled = enabled,
         description = info?.text.orEmpty(),
@@ -226,6 +227,8 @@ internal fun SystemsMenu(
             // consola y el cambio en vivo movia el color y la letra dejando la imagen del anterior.
             val chosen = sys?.id?.let(RenderChoices::of)
             val img = remember(sys?.id, look.id, chosen) { sys?.let { SystemArt.find(it.id, it.image) } }
+                // Los ultimos jugados no son una consola: su imagen es la caratula del ultimo.
+                ?: current?.takeIf { it.first == RECENT_SYSTEM }?.second?.firstOrNull()?.let { vm.art?.find(it) }
             // El giro, salvo en un tema que no quiere movimiento: ahi la consola se queda
             // quieta, como la caratula, que es de lo que va ese tema.
             val quiet = !LocalTheme.current.spins
@@ -267,13 +270,25 @@ internal fun GamesMenu(
     enabled: Boolean,
     onPlay: (Game) -> Unit,
     onSelectionChange: (Game?) -> Unit,
-    onLongPress: () -> Unit,
+    /** Pulsacion larga sobre una fila: su juego. */
+    onLongPress: (Game) -> Unit,
+    /** El juego en que empezar, por su ruta: el elegido en la busqueda. */
+    focus: String? = null,
 ) {
     val games = vm.gamesOf(systemId)
     val sys = vm.catalog?.byId?.get(systemId)
     val art = vm.art
-    var selected by remember(systemId, games) { mutableStateOf(0) }
+    // Cuando la lista cambia (un juego borrado, o Link que trae ROMs y se vuelve a leer), el cursor
+    // sigue en el juego en que estaba, o cerca. Volvia al primero, y una A justo entonces lanzaba
+    // otro juego (revision del 09-10-2026). Lo de antes, en un apunte que no es estado.
+    val was = remember(systemId) { arrayOfNulls<Any>(2).also { it[0] = focus } }
+    var selected by remember(systemId, games) {
+        val i = (was[0] as String?)?.let { p -> games.indexOfFirst { it.path == p } } ?: -1
+        mutableStateOf(if (i >= 0) i else ((was[1] as Int?) ?: 0).coerceIn(0, (games.size - 1).coerceAtLeast(0)))
+    }
     val game = games.getOrNull(selected)
+    was[0] = game?.path
+    was[1] = selected
 
     // Los favoritos llevan una estrella pegada a la izquierda (ver Star y MenuEntry), aparte del
     // texto. Y los que sirven para una mision que se sigue (ver Missions), un ojo a la derecha.
@@ -340,7 +355,7 @@ internal fun GamesMenu(
         onSelect = { selected = it },
         onActivate = { game?.let(onPlay) },
         onBack = onBack,
-        onLongPress = onLongPress,
+        onLongPress = { i -> games.getOrNull(i)?.let(onLongPress) },
         refocus = refocus,
         enabled = enabled,
         description = story?.first ?: info?.text.orEmpty(),
@@ -383,7 +398,12 @@ internal fun MenuLayout(
     description: String,
     footer: String?,
     onBack: (() -> Unit)? = null,
-    onLongPress: (() -> Unit)? = null,
+    /**
+     * Pulsacion larga sobre una fila, con su indice. Sin el, el menu salia para la fila que
+     * estuviera elegida, no para la tocada, y «Delete game» actuaba sobre otro juego (revision del
+     * 09-10-2026).
+     */
+    onLongPress: ((Int) -> Unit)? = null,
     /**
      * Lo que se cuenta de lo elegido con lineas desde su imagen: rotulo y valor, hasta cuatro.
      *
@@ -725,9 +745,12 @@ internal fun MenuLayout(
                                     if (enabled) restoring = false
                                 }
                             },
-                            onTap = { onSelect(index); pendingTap = index },
+                            // Con la lista apagada (una ventana encima) el dedo no hace nada: con
+                            // dos pantallas la lista esta en la otra, fuera del velo, y un toque
+                            // lanzaba un juego detras de los ajustes (revision del 09-10-2026).
+                            onTap = { if (enabled) { onSelect(index); pendingTap = index } },
                             onActivate = onActivate,
-                            onLongPress = onLongPress,
+                            onLongPress = onLongPress?.let { lp -> { if (enabled) { onSelect(index); lp(index) } } },
                         )
                     }
                 }

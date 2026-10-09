@@ -142,7 +142,7 @@ class TomlTest {
         val snes = doc.all("system").first { it.string("id") == "snes" }
         assertEquals("Super Nintendo", snes.string("name"))
         assertEquals("snes9x", snes.string("raCore"))
-        assertEquals(1.4, snes.number("boxAspect")!!, 0.001)
+        assertEquals(1990.0, snes.number("year")!!, 0.001)
         assertTrue("sfc" in snes.strings("extensions"))
         assertTrue(snes.strings("aliases").size > 5)
     }

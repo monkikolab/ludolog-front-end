@@ -99,10 +99,11 @@ internal fun rememberGameplay(vm: LibraryViewModel, game: Game?): Gameplay {
     // El sonido no viaja dentro del mp4: va por el mismo reproductor que los clics, que es el
     // camino que no molesta. Sin video sintonizado, se calla.
     LaunchedEffect(clip, rev, withSound, vm.prefs.panelVolume, fx) {
-        Sfx.clip(
-            clip?.takeIf { withSound }?.let { TapeQueue.audioFor(it, fx) },
-            vm.prefs.panelVolume / 100f,
-        )
+        // Buscar el fichero y mirar como es, en otro hilo: ver Sfx.probe.
+        val audio = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            clip?.takeIf { withSound }?.let { TapeQueue.audioFor(it, fx) }?.also { Sfx.probe(it) }
+        }
+        Sfx.clip(audio, vm.prefs.panelVolume / 100f)
     }
     // Y al irse, callado. El panel de un juego desaparece al volver a la lista de consolas, y
     // sin esto su pista seguiria sonando sin video: el efecto de arriba ya no llega a pedir
