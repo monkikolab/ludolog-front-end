@@ -92,6 +92,7 @@ object ThemeFiles {
      * no queda pasando por bueno.
      */
     fun unpackBuiltIn(ctx: Context) {
+        forget()
         if (!DataHome.ready()) return
         fun walk(path: String) {
             val names = runCatching { ctx.assets.list(path) }.getOrNull().orEmpty()
@@ -189,7 +190,7 @@ object ThemeFiles {
      *
      * Sin fichero no pasa nada: la tarjeta usa la marca que trae el programa.
      */
-    fun mark(ctx: Context): File? = File(dir(ctx), "mark.svg").takeIf { it.isFile && it.length() > 0L }
+    fun mark(ctx: Context): File? = memo(ctx, "mark") { File(it, "mark.svg").takeIf { f -> f.isFile && f.length() > 0L } }
 
     /**
      * La marca del COMPANION: la suya si el tema la trae, y si no la del tema.
@@ -204,14 +205,14 @@ object ThemeFiles {
      * hasta ahora.
      */
     fun companion(ctx: Context): File? =
-        File(dir(ctx), "companion.svg").takeIf { it.isFile && it.length() > 0L } ?: mark(ctx)
+        memo(ctx, "companion") { File(it, "companion.svg").takeIf { f -> f.isFile && f.length() > 0L } } ?: mark(ctx)
 
     /**
      * La marca de Ludolog Link, para su fila en la lista de consolas en un tema sin sala (en
      * Parlour gira la radio). Sin respaldo en la del tema: Link no es el tema, y sin la suya la
      * fila dice su nombre. Las de Gallery y Mainframe las genera tools/link-marks.py, en las fuentes de los temas.
      */
-    fun link(ctx: Context): File? = File(dir(ctx), "link.svg").takeIf { it.isFile && it.length() > 0L }
+    fun link(ctx: Context): File? = memo(ctx, "link") { File(it, "link.svg").takeIf { f -> f.isFile && f.length() > 0L } }
     /**
      * El fondo plano del tema: una imagen, o un video corto en bucle.
      *
@@ -226,9 +227,8 @@ object ThemeFiles {
      * El orden importa: si estan los dos, manda el video. Quien deja un mp4 al lado de un jpg
      * casi siempre acaba de anadir el mp4.
      */
-    fun backdrop(ctx: Context): File? {
-        val d = dir(ctx)
-        return listOf("backdrop.mp4", "backdrop.jpg", "backdrop.png")
+    fun backdrop(ctx: Context): File? = memo(ctx, "backdrop") { d ->
+        listOf("backdrop.mp4", "backdrop.jpg", "backdrop.png")
             .map { File(d, it) }
             .firstOrNull { it.isFile && it.length() > 0L }
     }
@@ -243,6 +243,27 @@ object ThemeFiles {
      * algo de verdad ahi.
      */
     private fun at(ctx: Context, sub: String, name: String): File? =
-        File(dir(ctx), "$sub/${name.substringAfterLast('/')}")
-            .takeIf { it.isFile && it.length() > 0L }
+        memo(ctx, "$sub/${name.substringAfterLast('/')}") { d ->
+            File(d, "$sub/${name.substringAfterLast('/')}").takeIf { it.isFile && it.length() > 0L }
+        }
+
+    /**
+     * Lo que se encontro (o no) para cada tema y nombre. La marca del Companion y la de Link, el
+     * fondo, los sonidos y las letras se buscaban en la SD cada vez que se dibujaba, y la lista de
+     * consolas lo hacia en el hilo de la pantalla con cada movimiento (08-10-2026). Va por la
+     * carpeta del tema, asi que cambiar de tema busca de nuevo; y se olvida al instalar un tema y al
+     * volver a la app (ver [forget]), por si Link o el usuario cambiaron algun fichero.
+     */
+    private val found = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<File>>()
+
+    private inline fun memo(ctx: Context, name: String, look: (File) -> File?): File? {
+        val d = dir(ctx)
+        return found.getOrPut("${d.path}|$name") { java.util.Optional.ofNullable(look(d)) }.orElse(null)
+    }
+
+    /** Olvida lo encontrado y las marcas leidas: al instalar o desempaquetar un tema, y al volver a la app. */
+    fun forget() {
+        found.clear()
+        SvgMark.forget()
+    }
 }

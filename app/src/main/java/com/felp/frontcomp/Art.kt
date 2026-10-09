@@ -256,12 +256,30 @@ object SystemArt {
 
     private fun inSystems(stem: String, exts: List<String>, roots: List<File>): File? {
         for (root in roots) {
-            val dir = File(root, "systems")
-            if (!dir.isDirectory) continue
-            for (ext in exts) File(dir, "$stem.$ext").takeIf { it.isFile }?.let { return it }
+            val here = systems(root)
+            for (ext in exts) here["$stem.$ext".lowercase()]?.let { return it }
         }
         return null
     }
+
+    /**
+     * Lo que hay en `systems/` de una carpeta de medios, por nombre en minusculas. Buscar la imagen
+     * o el giro de una consola probaba cada extension en cada carpeta, y cada prueba era ir a la SD:
+     * al recorrer la lista de consolas pasaba en el hilo de la pantalla y la trababa (08-10-2026).
+     * Ahora una lectura de la carpeta cada [RELIST_NS] como mucho; lo que se anada aparece en la
+     * siguiente. Sin la carpeta, nada.
+     */
+    private fun systems(root: File): Map<String, File> {
+        val dir = File(root, "systems")
+        val now = System.nanoTime()
+        listings[dir.path]?.let { (at, map) -> if (now - at < RELIST_NS) return map }
+        val map = dir.list().orEmpty().associate { it.lowercase() to File(dir, it) }
+        listings[dir.path] = now to map
+        return map
+    }
+
+    private val listings = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, Map<String, File>>>()
+    private const val RELIST_NS = 5_000_000_000L
 
     /**
      * The console turning on itself, if somebody rendered one.
@@ -282,15 +300,7 @@ object SystemArt {
             File(video).takeIf { it.isAbsolute && it.isFile }?.let { return it }
             for (root in roots) File(root, video).takeIf { it.isFile }?.let { return it }
         }
-        for (root in roots) {
-            val dir = File(root, "systems")
-            if (!dir.isDirectory) continue
-            for (ext in VIDEO_EXTS) {
-                val f = File(dir, "$systemId.$ext")
-                if (f.isFile) return f
-            }
-        }
-        return null
+        return inSystems(systemId, VIDEO_EXTS, roots)
     }
 
     fun find(
@@ -305,15 +315,7 @@ object SystemArt {
             File(image).takeIf { it.isAbsolute && it.isFile }?.let { return it }
             for (root in roots) File(root, image).takeIf { it.isFile }?.let { return it }
         }
-        for (root in roots) {
-            val dir = File(root, "systems")
-            if (!dir.isDirectory) continue
-            for (ext in EXTS) {
-                val f = File(dir, "$systemId.$ext")
-                if (f.isFile) return f
-            }
-        }
-        return null
+        return inSystems(systemId, EXTS, roots)
     }
 }
 

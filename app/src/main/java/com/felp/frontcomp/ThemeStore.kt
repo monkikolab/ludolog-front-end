@@ -66,6 +66,7 @@ internal object ThemeStore {
      * cada nombre del zip se comprueba: uno que se saliera de la carpeta («../») no se escribe.
      */
     fun install(source: String, offer: Offer, root: File = dir, progress: (String) -> Unit = {}): Result<Unit> = runCatching {
+        ThemeFiles.forget()
         if (installed(offer.id, root)) return@runCatching
         progress("Downloading ${offer.title}…")
         val zip = GameDb.get(source.trimEnd('/') + "/" + offer.file)

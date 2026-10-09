@@ -132,9 +132,11 @@ internal fun SystemsMenu(
     val deviceSpecs = remember { DeviceSpecs.of(ctx) }
     val bookFacts by produceState(emptyList<Pair<String, String>>(), onBook, vm.played) {
         value = if (!onBook) emptyList() else withContext(Dispatchers.IO) {
+            val t0 = android.os.SystemClock.elapsedRealtime()
             runCatching { companionFacts(ctx) }
                 .onFailure { android.util.Log.w("Ludolog", "ficha del cuaderno: $it") }
                 .getOrDefault(emptyList())
+                .also { android.util.Log.i("Ludolog", "companion: ficha de la lista en ${android.os.SystemClock.elapsedRealtime() - t0} ms") }
         }
     }
 

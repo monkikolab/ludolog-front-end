@@ -309,6 +309,8 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
     // Se abre la base una vez y se cierra una vez, en lugar de una por consulta.
     val book by produceState<Book?>(null, revision) {
         value = withContext(Dispatchers.IO) {
+            // Cuanto tarda, en el registro: con cuadernos grandes es lo primero que se nota (08-10-2026).
+            val t0 = android.os.SystemClock.elapsedRealtime()
             runCatching {
                 Logbook(ctx, withOthers = true).use { db ->
                     val s = LogStats(db)
@@ -359,7 +361,9 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
                         chargeNowUah = now,
                     )
                 }
-            }.getOrNull()
+            }.getOrNull().also { b ->
+                android.util.Log.i("Ludolog", "companion: cuaderno leido en ${android.os.SystemClock.elapsedRealtime() - t0} ms (${b?.plays?.size ?: 0} partidas)")
+            }
         }
     }
 
@@ -369,7 +373,9 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
     // grafico. Aqui es una consulta y ya.
     val buckets by produceState<List<LogStats.Slice>>(emptyList(), revision, grain) {
         value = withContext(Dispatchers.IO) {
+            val t0 = android.os.SystemClock.elapsedRealtime()
             runCatching { Logbook(ctx, withOthers = true).use { LogStats(it).buckets(grain) } }.getOrDefault(emptyList())
+                .also { android.util.Log.i("Ludolog", "companion: grafico ($grain) en ${android.os.SystemClock.elapsedRealtime() - t0} ms") }
         }
     }
 
@@ -399,7 +405,9 @@ internal fun StatsWindow(vm: LibraryViewModel, onClose: () -> Unit) {
     val ranked by produceState<List<LogStats.Row>?>(null, metric, groupBy, revision) {
         val m = metric
         value = if (m == null) emptyList() else withContext(Dispatchers.IO) {
+            val t0 = android.os.SystemClock.elapsedRealtime()
             runCatching { Logbook(ctx, withOthers = true).use { LogStats(it).rank(m, groupBy) } }.getOrNull()
+                .also { android.util.Log.i("Ludolog", "companion: ranking $m por $groupBy en ${android.os.SystemClock.elapsedRealtime() - t0} ms") }
         }
     }
 

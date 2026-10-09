@@ -73,7 +73,20 @@ object SvgMark {
      * propia figura, la clase que lleve, y si no hay ninguno, negro. Las clases viven en un
      * bloque `<style>` —asi las escribe Illustrator— y por eso hay que leerlo antes.
      */
-    fun shapes(file: File): Pair<List<Shape>, RectF>? = runCatching {
+    fun shapes(file: File): Pair<List<Shape>, RectF>? =
+        parsed.getOrPut(file.path) { java.util.Optional.ofNullable(parse(file)) }.orElse(null)
+
+    /**
+     * Las figuras ya leidas, por fichero. Se pedian cada vez que la lista pasaba por el Companion o
+     * por Link, y leer y desarmar el SVG en el hilo de la pantalla trababa la lista (08-10-2026).
+     * Se dibujan siempre sobre una copia (ver [tinted]), asi que se pueden reusar. Ver ThemeFiles.forget.
+     */
+    private val parsed = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<Pair<List<Shape>, RectF>>>()
+
+    /** Olvida lo leido: un tema instalado de nuevo puede traer otra marca con el mismo nombre. */
+    fun forget() = parsed.clear()
+
+    private fun parse(file: File): Pair<List<Shape>, RectF>? = runCatching {
         val svg = file.readText()
         // La regla que venga despues pisa a la de antes, como en CSS.
         val byClass = HashMap<String, String>()

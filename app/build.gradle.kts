@@ -58,7 +58,11 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 quita lo que no se usa de Compose, Media3 y Coil, y optimiza el resto: sin el, el
+            // codigo eran 32 MB y Android tardaba en cargarlo y compilarlo, y la lista se trababa
+            // hasta que el sistema compilaba la app (09-10-2026). Sin ofuscar: ver proguard-rules.pro.
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (hasSigning) signingConfig = signingConfigs.getByName("release")
         }
         // Ludolog Dev, para probar al lado de la oficial firmada (07-10-2026; reemplaza a la copia
@@ -73,6 +77,13 @@ android {
             initWith(getByName("debug"))
             applicationIdSuffix = ".dev"
             matchingFallbacks += "debug"
+            // No depurable, como la oficial: Android la compila igual (y con los perfiles de arranque), y
+            // lo que se mida de fluidez es lo que ve el usuario. Depurable, Compose iba bastante mas lento
+            // y exageraba los tirones (08-10-2026).
+            isDebuggable = false
+            // Y reducida con R8 como la oficial, para probar el mismo codigo que reciben los usuarios.
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "DATA_NAME", "\"LudologDev\"")
             buildConfigField("boolean", "IMPORT_LEGACY", "false")
             buildConfigField("String", "LINK_PACKAGE", "\"com.felp.ludologlink.dev\"")

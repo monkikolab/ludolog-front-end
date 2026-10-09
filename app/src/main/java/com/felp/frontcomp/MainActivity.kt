@@ -413,6 +413,8 @@ class MainActivity : ComponentActivity() {
         Prefs(this).let { p -> Motion.fps.intValue = p.animationFps; Motion.saver.value = p.batterySaver }
         // Si Ludolog Link esta: la sala saca su radio. Se mira al volver por si se instalo o se quito.
         LinkSaveCheck.refresh(this)
+        // Los ficheros del tema se vuelven a buscar: Link o el usuario pueden haber cambiado alguno.
+        ThemeFiles.forget()
         Motion.away.value = false
         noteInput()
         // Volver aqui es haber salido del emulador: la partida termino. Pero solo si se queda.

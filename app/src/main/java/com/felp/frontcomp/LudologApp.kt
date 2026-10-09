@@ -15,6 +15,11 @@ class LudologApp : Application() {
         super.onCreate()
         // Lo primero: un fallo de aqui en adelante queda para el diagnostico (ver Diagnostics).
         CrashLog.install(this)
+        // En Ludolog Dev, el registro avisa de cada lectura o escritura de disco hecha desde el hilo de la
+        // pantalla, con el sitio exacto: es lo que traba las listas en las consolas lentas (08-10-2026).
+        if (BuildConfig.DEV) android.os.StrictMode.setThreadPolicy(
+            android.os.StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().penaltyLog().build()
+        )
         DataHome.init(this)
         // Lo que quedara en la carpeta de trabajo de un proceso anterior: descargas cortadas,
         // conversiones dejadas atras. Aqui el proceso acaba de nacer y nada lo esta usando.

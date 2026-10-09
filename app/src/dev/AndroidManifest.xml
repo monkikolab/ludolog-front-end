@@ -2,10 +2,12 @@
 <!--
   Ludolog Dev no se ofrece como app de inicio: instalada al lado de la oficial, Android no tiene que
   preguntar cual abrir con el boton de casa.
+  Es perfilable desde adb (simpleperf, Perfetto) para medir el rendimiento como en la oficial.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <application>
+        <profileable android:shell="true" />
         <activity android:name=".MainActivity">
             <intent-filter tools:node="remove">
                 <action android:name="android.intent.action.MAIN" />

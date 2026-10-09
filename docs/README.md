@@ -13,7 +13,14 @@ Requirements: JDK 21 and the Android SDK (API 37).
 **Ludolog Dev** is a separate app (package `com.felp.frontcomp.dev`, debug key) with its own data
 folder, `LudologDev`. It is never the home app, and it talks only to Link Dev (`assembleDev` in
 ludolog-link), so a device can keep the official Ludolog and Link while you test. To try a first
-install, clear its data and delete its folder.
+install, clear its data and delete its folder. It is built like a release (see below) and can be
+profiled from adb (simpleperf, Perfetto), so what you measure on it is what users get.
+
+Release and Dev builds are shrunk and optimised with R8, without obfuscation
+(`app/proguard-rules.pro`): class and method names stay readable in error messages and crash
+reports, and line numbers can be recovered with that build's `mapping.txt`
+(`app/build/outputs/mapping/<build>/`). `app/src/main/baseline-prof.txt` asks Android to compile
+all of Ludolog's own code ahead of time.
 
 A release build needs your own signing key, in a `keystore.properties` file at the root of the
 repository (it is ignored by git):

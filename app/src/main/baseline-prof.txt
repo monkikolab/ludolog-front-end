@@ -1,0 +1,6 @@
+# Perfil de arranque de Ludolog: lo que Android compila por adelantado al instalar (o en cuanto
+# puede, si la app no vino de una tienda). Compose, Media3 y Coil traen el suyo; aqui va todo el
+# codigo propio, que es poco y se usa casi entero: sin esto, la lista de consolas y la del Companion
+# corrian interpretadas durante los primeros dias y se trababan (09-10-2026).
+Lcom/felp/frontcomp/**;
+HSPLcom/felp/frontcomp/**;->**(**)**
