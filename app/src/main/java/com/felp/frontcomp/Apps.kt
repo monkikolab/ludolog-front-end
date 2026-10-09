@@ -152,11 +152,12 @@ object AppsRepo {
         }
     }.ifEmpty { "An installed app." }
 
-    fun launch(ctx: Context, entry: AppEntry): String? {
+    /** [game]: un juego de Android, que con dos pantallas va a la de la imagen (ver DualPlay). */
+    fun launch(ctx: Context, entry: AppEntry, game: Boolean = false): String? {
         val intent = ctx.packageManager.getLaunchIntentForPackage(entry.pkg)
             ?: return "No launch intent for ${entry.label}"
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        return runCatching { ctx.startActivity(intent); null }
+        return runCatching { if (game) DualPlay.launchGame(ctx, intent) else ctx.startActivity(intent); null }
             .getOrElse { "Did not start: ${it.javaClass.simpleName}" }
     }
 

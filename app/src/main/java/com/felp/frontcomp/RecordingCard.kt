@@ -121,8 +121,10 @@ internal object RecordingCard {
         main.post { runCatching { drop() } }
     }
 
-    private fun put(ctx: Context, note: Note) {
+    private fun put(app: Context, note: Note) {
         drop()
+        // En la pantalla del juego, que con dos puede no ser la de la consola: ver DualPlay.
+        val ctx = runCatching { DualPlay.overlayContext(app) }.getOrDefault(app)
         val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val card = build(ctx, note)
         wm.addView(card, params())

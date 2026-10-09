@@ -21,7 +21,10 @@ into a character.
 - **Find any game.** Search every console at once by part of its name, with Y or the magnifier at
   the top, and pick up where you left off from Recently played, at the top of the list.
 - **Made for handhelds.** Built for a gamepad, works with touch, adapts to any screen shape and to
-  dual-screen devices, and can be your home screen.
+  dual-screen devices, and can be your home screen. With a second screen, the list goes on one and
+  the room and the game on the other, and you can swap them: with a TV, the picture goes big. A game
+  opens on the screen with the picture and Ludolog stays on the other, where you can keep browsing or
+  open another app; tap a touch screen three times to move the controls to the other screen.
 
 ### Three themes
 

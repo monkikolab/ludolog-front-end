@@ -86,6 +86,39 @@
             </intent-filter>
         </activity>
         <!--
+          Con dos pantallas y un juego abierto, Ludolog en la que no tiene el juego: ver
+          DualScreen.launchGame. En su tarea, para no arrastrar a la principal, que se queda debajo
+          del juego.
+        -->
+        <activity
+            android:name=".SideActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="${applicationId}.side"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|keyboardHidden|uiMode" />
+        <!--
+          Pasa el mando a otra pantalla: se abre en ella y se cierra en el acto, y lo que hubiera alli
+          se queda con el. Ver DualPlay.focus.
+        -->
+        <activity
+            android:name=".FocusHopActivity"
+            android:exported="false"
+            android:taskAffinity="${applicationId}.hop"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+        <!--
+          Debajo del juego, en su pantalla, con dos: cuando el juego se cierra queda delante, y eso es
+          volver. Ver DualPlay.launchGame. Transparente y en su tarea.
+        -->
+        <activity
+            android:name=".GameBaseActivity"
+            android:exported="false"
+            android:taskAffinity="${applicationId}.base"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!--
           Los accesos que una app ancla en la pantalla de inicio (GameHub, «Add to home screen»),
           cuando la de inicio es Ludolog. Sin esto GameHub decia que faltaba un permiso para crear
           accesos. Ver PinShortcut.kt.

@@ -525,9 +525,11 @@ class LibraryViewModel(app: android.app.Application) : androidx.lifecycle.Androi
 
     /** Lanza un juego con el emulador recordado, o el primero instalado. */
     fun play(ctx: Context, game: Game): String? {
+        // Con dos pantallas, otro juego mientras el anterior aun arranca: ver DualPlay.busy.
+        DualPlay.busy()?.let { return it }
         // Un juego de Android no tiene fichero ni emulador: se abre el paquete y ya.
         game.appPackage?.let { pkg ->
-            val err = AppsRepo.launch(ctx, AppEntry(game.title, pkg, AppSlot.GAME))
+            val err = AppsRepo.launch(ctx, AppEntry(game.title, pkg, AppSlot.GAME), game = true)
             if (err == null) {
                 prefs.recordPlayed(game)
                 SessionTracker.started(ctx, game, pkg, bookTitle(game), missionsFor(game).firstOrNull()?.how)
@@ -648,7 +650,8 @@ class LibraryViewModel(app: android.app.Application) : androidx.lifecycle.Androi
     private fun start(ctx: Context, game: Game, intent: android.content.Intent): String? {
         val l = launcher ?: return "No launcher"
         return runCatching {
-            ctx.startActivity(intent)
+            // Con dos pantallas, en la de la imagen y con Ludolog en la otra: ver DualPlay.
+            DualPlay.launchGame(ctx, intent)
             // Por si RetroArch se cierra al recibirlo, que la 1.22.2 lo hace: ver Bounce.
             if (l.isRetroArch(intent)) Bounce.launched(intent) else Bounce.clear()
             prefs.recordPlayed(game)

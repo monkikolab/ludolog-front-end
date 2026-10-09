@@ -787,11 +787,11 @@ internal fun MenuLayout(
             }
     }
     val second = DualScreen.display.value
-    if (second != null) {
-        OnSecondDisplay(second) {
-            Box(Modifier.fillMaxSize().background(MenuGround)) { listPane(Modifier.fillMaxSize()) }
-        }
-    }
+    // Con otra pantalla, lo que va alli —la lista, o el panel con las pantallas cambiadas— lo
+    // dibuja la raiz en su ventana de siempre: ver DualScreen.stage. Cada menu tenia la suya, y
+    // al entrar en una consola se cerraba una y se abria otra: en el hueco, unos fotogramas, se
+    // veia lo de debajo (10-10-2026, grabando el monitor de la Odin).
+    val swapped = second != null && DualScreen.swapped.value
     // Lo de la derecha —la imagen y su texto—, aparte: en una pantalla casi cuadrada va arriba,
     // a todo lo ancho, y la lista debajo.
     val stagePane: @Composable RowScope.(Boolean) -> Unit = { square ->
@@ -870,6 +870,29 @@ internal fun MenuLayout(
                     contentAlignment = Alignment.Center,
                 ) { preview() }
             }
+    }
+    if (second != null) {
+        val owner = remember { Any() }
+        val pane: @Composable () -> Unit =
+            if (swapped) { { Row(Modifier.fillMaxSize()) { stagePane(false) } } }
+            else { { Box(Modifier.fillMaxSize().background(MenuGround)) { listPane(Modifier.fillMaxSize()) } } }
+        SideEffect {
+            DualScreen.stageOwner = owner
+            DualScreen.stage.value = pane
+        }
+        DisposableEffect(owner) {
+            onDispose {
+                if (DualScreen.stageOwner === owner) {
+                    DualScreen.stageOwner = null
+                    DualScreen.stage.value = null
+                }
+            }
+        }
+    }
+    if (swapped) {
+        // La lista, sola en esta pantalla, como la de la otra cuando no estan cambiadas.
+        Box(Modifier.fillMaxSize().background(MenuGround)) { listPane(Modifier.fillMaxSize()) }
+        return
     }
     BoxWithConstraints(Modifier.fillMaxSize()) {
     val listW = listWidth(maxWidth, instrument)

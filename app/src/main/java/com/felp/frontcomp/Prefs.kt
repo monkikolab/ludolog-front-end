@@ -547,6 +547,11 @@ class Prefs(
         get() = sp.getBoolean("look.second", true)
         set(v) = sp.edit().putBoolean("look.second", v).apply()
 
+    /** Con dos pantallas, la lista en esta y la escena en la otra. Ver DualScreen.swapped. */
+    var swapScreens: Boolean
+        get() = sp.getBoolean("look.second.swap", false)
+        set(v) = sp.edit().putBoolean("look.second.swap", v).apply()
+
     /** A cuantos fotogramas por segundo se mueve lo que se mueve solo. Ver Motion. */
     var animationFps: Int
         get() = sp.getInt("look.fps", Motion.DEFAULT_FPS).takeIf { it in Motion.CHOICES } ?: Motion.DEFAULT_FPS

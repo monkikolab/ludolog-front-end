@@ -205,7 +205,7 @@ private fun menuTarget(system: String?): String? =
     system?.takeIf { it != RECKONING_SYSTEM && it != LINK_SYSTEM && it != RECENT_SYSTEM }
 
 /** Lo que tiene que quedarse el front-end delante para que cuente como vuelta de un juego. */
-private const val RETURN_CONFIRM_MS = 3_000L
+internal const val RETURN_CONFIRM_MS = 3_000L
 
 /** Cuanto se espera el dibujo pedido al recuperar el foco. Ver MainActivity.watchDrawing. */
 private const val DRAW_CHECK_MS = 1_500L
@@ -462,7 +462,11 @@ class MainActivity : ComponentActivity() {
         noteInput()
         return super.dispatchTouchEvent(ev)
     }
-    private val returnedForGood = Runnable { SessionTracker.returned(this, SessionTracker.backAt) }
+    private val returnedForGood = Runnable {
+        SessionTracker.returned(this, SessionTracker.backAt)
+        // Con dos pantallas: cada una vuelve a lo suyo. Ver DualPlay.
+        DualPlay.stop(this)
+    }
 
     /**
      * Los gatillos del mando, que no llegan como teclas.
@@ -505,9 +509,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * [side]: la segunda, en la otra pantalla mientras se juega (ver DualPlay). Lo mismo, sin lo que
+ * se hace una vez al arrancar —leer el catalogo, repasar la biblioteca, el ambiente—: eso es de la
+ * principal, que sigue viva debajo del juego.
+ */
 @Composable
-private fun Root(vm: LibraryViewModel = viewModel()) {
+internal fun Root(vm: LibraryViewModel = viewModel(), side: Boolean = false) {
     val ctx = LocalContext.current
+    if (!side) SideEffect { DualPlay.vm = vm }
     var granted by remember { mutableStateOf(hasStorage()) }
     var screen by remember { mutableStateOf<Screen>(Screen.Systems) }
     var toast by remember { mutableStateOf<String?>(null) }
@@ -541,7 +551,9 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
     // La segunda pantalla: con ella la lista va abajo y sus teclas tambien, salvo con una ventana
     // encima. Ver DualScreen.
     val dual = DualScreen.display.value
-    SideEffect { DualScreen.routeToList = dual != null && !anyModal }
+    // Con las pantallas cambiadas la lista esta aqui y sus teclas no tienen que ir a ningun sitio.
+    val listAway = dual != null && !DualScreen.swapped.value
+    SideEffect { DualScreen.routeToList = listAway && !anyModal }
     // Lo que dice el modelo por su cuenta (Link, un fallo al lanzar despues de preguntar), abajo.
     LaunchedEffect(vm.notice) { vm.notice?.let { toast = it; vm.notice = null } }
 
@@ -570,7 +582,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
         }
     }
 
-    LaunchedEffect(Unit) {
+    if (!side) LaunchedEffect(Unit) {
         vm.loadCatalog { name -> ctx.assets.open(name).bufferedReader().use { it.readText() } }
         vm.refreshAndroidGames(ctx)
         // La biblioteca de la ultima vez aparece ya; el repaso va detras y se pone al dia.
@@ -595,7 +607,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
     }
     // Una vez al dia, si hay version nueva en GitHub: un aviso abajo, una sola vez por version (ver
     // Updates). Despues del arranque, para no competir con el repaso de la biblioteca.
-    LaunchedEffect(Unit) {
+    if (!side) LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(20_000)
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { Updates.daily(ctx, vm.prefs) }.getOrNull() }
             ?.let { vm.notice = it }
@@ -613,14 +625,14 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
     // entera como al cambiar de tema. Nunca a mitad de una partida ni con la app detras: se espera
     // a que el tracker la cierre y a que Ludolog vuelva a estar delante.
     val configured = LinkBridge.configChanged.intValue
-    LaunchedEffect(configured) {
+    if (!side) LaunchedEffect(configured) {
         if (configured == 0) return@LaunchedEffect
         while (SessionTracker.recording || Motion.away.value) kotlinx.coroutines.delay(1_000)
         restartApp(ctx)
     }
     // Un respaldo devuelto desde el PC que llego con el proceso ya vivo y sin pantalla (ver
     // LinkRestore): espera a este reinicio, con las mismas condiciones.
-    LaunchedEffect(Unit) { if (LinkRestore.pending()) LinkBridge.configChanged.intValue++ }
+    if (!side) LaunchedEffect(Unit) { if (LinkRestore.pending()) LinkBridge.configChanged.intValue++ }
 
     /*
      * Los sonidos se enganchan aqui, a los cambios de estado, y no en cada sitio que los
@@ -629,7 +641,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
      * las tres causas es una linea en lugar de tres, y no se olvida ninguna el dia que
      * aparezca una cuarta.
      */
-    LaunchedEffect(Unit) {
+    if (!side) LaunchedEffect(Unit) {
         Sfx.uiOn = vm.prefs.uiSound
         Sfx.ambienceOn = vm.prefs.ambienceSound
         Sfx.load(ctx)
@@ -792,152 +804,174 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
                 }
             }
     ) {
-        // La sala va debajo de todo.
-        //
-        // Se desenfoca mientras se eligen consolas y se aclara al entrar en una: el nivel en
-        // el que estás queda dicho con el foco, sin necesitar ni una palabra. Y la televisión
-        // de la escena se sintoniza con lo que haya seleccionado, o se queda en estática.
-        // Sin giros, si el tema lo pide. Se lee aqui y no dentro de los `remember`, que no son
-        // composables y no ven los locales.
-        val noSpins = !LocalTheme.current.spins
-        // Y el fondo plano, para los temas que no tienen sala. Se mira una vez por tema.
-        val themeId = LocalTheme.current.id
-        // Al cambiar de tema se vuelven a leer las salas Y los sonidos: los dos salen de la
-        // carpeta del tema puesto, y un tema es una carpeta entera.
-        //
-        // Por la carpeta y no por el aspecto: las dos luces del Gallery son el mismo tema y
-        // comparten ficheros, asi que el interruptor de claro y oscuro no tiene por que soltar
-        // los reproductores.
-        //
-        // Y con guarda, no solo por ahorrar trabajo: la clave de un LaunchedEffect salta tambien
-        // la primera vez, y rethemear ahi soltaria el ambiente recien arrancado.
-        val themeFolder = LocalTheme.current.chosenId
-        var lastTheme by remember { mutableStateOf(themeFolder) }
-        LaunchedEffect(themeFolder) {
-            if (lastTheme == themeFolder) return@LaunchedEffect
-            lastTheme = themeFolder
-            vm.reloadRooms()
-            Sfx.retheme(ctx)
-        }
-        val backdrop = remember(themeId, granted) { if (granted) ThemeFiles.backdrop(ctx) else null }
-        // Se resuelve una vez por cambio y no en cada recomposicion: elegir sala mira si sus
-        // ficheros estan en disco, y esto se recompone con cada movimiento del cursor.
-        val scene = remember(vm.tvSkins, vm.prefs.logbook, LinkSaveCheck.present.value, LocalTheme.current.room) { vm.scene }
-        // Una cosa o la otra, nunca las dos: la sala YA es un fondo.
-        if (scene == null && backdrop != null) Backdrop(backdrop)
-        if (granted && scene != null) {
-            val img = remember(scene.id) { scene.imageFile() }
-            val glow = remember(scene.id) { scene.glowFile() }
-            val embers = remember(scene.id) { scene.embersFile() }
-            val led = remember(scene.id) { scene.ledFile() }
-            if (img != null) {
-                // Con una ventana encima (ajustes, el menu de un juego), sin video ni sonido, como en
-                // los temas de panel: la tele seguia descodificando y sonando debajo, para nadie.
-                val playing = (screen as? Screen.Games)?.let { currentGame }?.takeIf { !anyModal }
+        // La escena: la sala, o el fondo plano de los temas sin ella, con la consola que gira y su
+        // texto. Aqui, o en la otra pantalla con las pantallas cambiadas (ver DualScreen.swapped),
+        // donde va con el panel del menu encima.
+        val sceneLayer: @Composable BoxScope.() -> Unit = {
+            // La sala va debajo de todo.
+            //
+            // Se desenfoca mientras se eligen consolas y se aclara al entrar en una: el nivel en
+            // el que estás queda dicho con el foco, sin necesitar ni una palabra. Y la televisión
+            // de la escena se sintoniza con lo que haya seleccionado, o se queda en estática.
+            // Sin giros, si el tema lo pide. Se lee aqui y no dentro de los `remember`, que no son
+            // composables y no ven los locales.
+            val noSpins = !LocalTheme.current.spins
+            // Y el fondo plano, para los temas que no tienen sala. Se mira una vez por tema.
+            val themeId = LocalTheme.current.id
+            // Al cambiar de tema se vuelven a leer las salas Y los sonidos: los dos salen de la
+            // carpeta del tema puesto, y un tema es una carpeta entera.
+            //
+            // Por la carpeta y no por el aspecto: las dos luces del Gallery son el mismo tema y
+            // comparten ficheros, asi que el interruptor de claro y oscuro no tiene por que soltar
+            // los reproductores.
+            //
+            // Y con guarda, no solo por ahorrar trabajo: la clave de un LaunchedEffect salta tambien
+            // la primera vez, y rethemear ahi soltaria el ambiente recien arrancado.
+            val themeFolder = LocalTheme.current.chosenId
+            var lastTheme by remember { mutableStateOf(themeFolder) }
+            LaunchedEffect(themeFolder) {
+                if (lastTheme == themeFolder) return@LaunchedEffect
+                lastTheme = themeFolder
+                vm.reloadRooms()
+                Sfx.retheme(ctx)
+            }
+            val backdrop = remember(themeId, granted) { if (granted) ThemeFiles.backdrop(ctx) else null }
+            // Se resuelve una vez por cambio y no en cada recomposicion: elegir sala mira si sus
+            // ficheros estan en disco, y esto se recompone con cada movimiento del cursor.
+            val scene = remember(vm.tvSkins, vm.prefs.logbook, LinkSaveCheck.present.value, LocalTheme.current.room) { vm.scene }
+            // Una cosa o la otra, nunca las dos: la sala YA es un fondo.
+            if (scene == null && backdrop != null) Backdrop(backdrop)
+            if (granted && scene != null) {
+                val img = remember(scene.id) { scene.imageFile() }
+                val glow = remember(scene.id) { scene.glowFile() }
+                val embers = remember(scene.id) { scene.embersFile() }
+                val led = remember(scene.id) { scene.ledFile() }
+                if (img != null) {
+                    // Con una ventana encima (ajustes, el menu de un juego), sin video ni sonido, como en
+                    // los temas de panel: la tele seguia descodificando y sonando debajo, para nadie.
+                    val playing = (screen as? Screen.Games)?.let { currentGame }?.takeIf { !anyModal }
 
-                // El video del juego, con su espera y su sonido aparte: lo mismo que en el
-                // panel de los temas sin sala. Ver `rememberGameplay`.
-                val tuned = rememberGameplay(vm, playing)
-                val clip = tuned.clip
+                    // El video del juego, con su espera y su sonido aparte: lo mismo que en el
+                    // panel de los temas sin sala. Ver `rememberGameplay`.
+                    val tuned = rememberGameplay(vm, playing)
+                    val clip = tuned.clip
 
-                // El color con el que la televisión tiñe la habitación.
-                //
-                // Mientras no hay nada sintonizado es el de la nieve, blanco frío: la tele
-                // alumbra el cuarto con ruido. Con un juego puesto lo marca el propio vídeo.
-                var videoTint by remember { mutableStateOf(StaticTint) }
-                val tint = if (clip == null) StaticTint else videoTint
-
-                // Todo lo de la sala dentro de su marco: a escala entera y sin deformar en
-                // cualquier proporcion de pantalla. Ver RoomFrame.
-                // Lo que se centra en el hueco de la lista si la pantalla es estrecha: la tele.
-                val tvAt = scene.corners.takeIf { it.size == 8 }?.let { (it[0] + it[2] + it[4] + it[6]) / 4f }
-                RoomFrame(img, focus = tvAt) {
-                    SceneBackground(
-                        file = img,
-                        glow = glow,
-                        embers = embers,
-                        tint = tint,
-                        blurred = screen is Screen.Systems,
-                        // Sin video sintonizado lo que hay en el tubo es una caratula o nieve,
-                        // y entonces la luz del cuarto tiembla por su cuenta.
-                        still = clip == null,
-                        led = led,
-                        ledOn = LinkSaveCheck.on.value,
-                    )
-                    SceneScreen(
-                        skin = scene,
-                        channel = playing?.path,
-                        video = clip,
-                        still = playing?.let { g -> vm.art?.find(g) },
-                        params = LocalTheme.current.crt,
-                        blurred = screen is Screen.Systems,
-                        onTint = { videoTint = it },
-                        // La tele avisa mientras prepara este canal. Solo cuando de verdad
-                        // esta trabajando en ESTE, no en otro que quedara en la cola.
-                        loading = tuned.pending?.let { TapeQueue.working == it.name } == true,
-                        progress = TapeQueue.progress,
-                    )
-                }
-
-                    // Y la consola, encima de todo.
+                    // El color con el que la televisión tiñe la habitación.
                     //
-                    // Antes vivía en un panel a la derecha que la sala dejó sin sentido, así que
-                    // llevaba un rato renderizada sin que se viera. Va aquí y no dentro del menú
-                    // porque el menú se dibuja dentro de una columna con su barra superior, y la
-                    // consola tiene que poder ponerse donde haya hueco en la habitación.
-                    val sysId = (screen as? Screen.Systems)?.let { currentSystem }
-                    val sys = sysId?.let { vm.catalog?.byId?.get(it) }
-                    // La consola de Android no tiene giro propio: enseña el teléfono, que es el
-                    // mismo que gira en el cajón de apps.
-                    val linkOn = LinkSaveCheck.on.value
-                    val spin = remember(sysId, sys?.id, noSpins, themeId, sysId?.let(RenderChoices::of), linkOn) {
-                        if (noSpins) null
-                        else if (sysId == RECKONING_SYSTEM) CompanionArt.spin()
-                        else if (sysId == LINK_SYSTEM) LinkArt.spin(linkOn)
-                        else if (sysId == ANDROID_SYSTEM) SystemArt.video(ANDROID_SYSTEM, sys?.video.orEmpty())
-                            ?: AppArt.phone()
-                        // Favoritos no es una consola del catalogo: su giro, la estrella, va por su id.
-                        else if (sysId == FAVORITES_SYSTEM) SystemArt.video(FAVORITES_SYSTEM)
-                        else sys?.let { SystemArt.video(it.id, it.video) }
-                    }
-                    // La consola y su texto, junto a la lista y no en la sala: ver BesideListFrame.
-                    BesideListFrame(scene) { placed ->
-                        SceneConsole(
-                            skin = placed,
-                            video = spin,
-                            visible = screen is Screen.Systems,
+                    // Mientras no hay nada sintonizado es el de la nieve, blanco frío: la tele
+                    // alumbra el cuarto con ruido. Con un juego puesto lo marca el propio vídeo.
+                    var videoTint by remember { mutableStateOf(StaticTint) }
+                    val tint = if (clip == null) StaticTint else videoTint
+
+                    // Todo lo de la sala dentro de su marco: a escala entera y sin deformar en
+                    // cualquier proporcion de pantalla. Ver RoomFrame.
+                    // Lo que se centra en el hueco de la lista si la pantalla es estrecha: la tele.
+                    val tvAt = scene.corners.takeIf { it.size == 8 }?.let { (it[0] + it[2] + it[4] + it[6]) / 4f }
+                    RoomFrame(img, focus = tvAt) {
+                        SceneBackground(
+                            file = img,
+                            glow = glow,
+                            embers = embers,
+                            tint = tint,
+                            blurred = screen is Screen.Systems,
+                            // Sin video sintonizado lo que hay en el tubo es una caratula o nieve,
+                            // y entonces la luz del cuarto tiembla por su cuenta.
+                            still = clip == null,
+                            led = led,
+                            ledOn = LinkSaveCheck.on.value,
+                        )
+                        SceneScreen(
+                            skin = scene,
+                            channel = playing?.path,
+                            video = clip,
+                            still = playing?.let { g -> vm.art?.find(g) },
+                            params = LocalTheme.current.crt,
+                            blurred = screen is Screen.Systems,
+                            onTint = { videoTint = it },
+                            // La tele avisa mientras prepara este canal. Solo cuando de verdad
+                            // esta trabajando en ESTE, no en otro que quedara en la cola.
+                            loading = tuned.pending?.let { TapeQueue.working == it.name } == true,
+                            progress = TapeQueue.progress,
                         )
                     }
-                    // Y el dialogo con lo que se cuenta de lo elegido, escrito a maquina. Es
-                    // lo que antes iba al pie del panel; con la sala, el panel se queda para
-                    // la lista y esto se lee debajo de la consola.
-                    val bookName = COMPANION_NAME
-                    val details = remember(
-                        screen, currentSystem, currentGame,
-                        vm.result, vm.androidGames, vm.art, vm.prefs.labelRevision, bookName,
-                        vm.played, companion, vm.chargeUah != null, vm.cardStory,
-                        LinkSaveCheck.on.value, LinkSaveCheck.address.value, LinkSaveCheck.peers.intValue,
-                    ) {
-                        when (screen) {
-                            is Screen.Systems ->
-                                if (currentSystem == RECKONING_SYSTEM) reckoningDetails(vm, bookName)
-                                else if (currentSystem == LINK_SYSTEM) linkDetails()
-                                else currentSystem?.let { vm.systemCard(it) }
-                            is Screen.Games -> currentGame?.let { g ->
-                                val card = vm.gameCard(g)
-                                vm.cardStory?.let { (text, from) -> card.copy(text = text, footer = from) } ?: card
+
+                        // Y la consola, encima de todo.
+                        //
+                        // Antes vivía en un panel a la derecha que la sala dejó sin sentido, así que
+                        // llevaba un rato renderizada sin que se viera. Va aquí y no dentro del menú
+                        // porque el menú se dibuja dentro de una columna con su barra superior, y la
+                        // consola tiene que poder ponerse donde haya hueco en la habitación.
+                        val sysId = (screen as? Screen.Systems)?.let { currentSystem }
+                        val sys = sysId?.let { vm.catalog?.byId?.get(it) }
+                        // La consola de Android no tiene giro propio: enseña el teléfono, que es el
+                        // mismo que gira en el cajón de apps.
+                        val linkOn = LinkSaveCheck.on.value
+                        val spin = remember(sysId, sys?.id, noSpins, themeId, sysId?.let(RenderChoices::of), linkOn) {
+                            if (noSpins) null
+                            else if (sysId == RECKONING_SYSTEM) CompanionArt.spin()
+                            else if (sysId == LINK_SYSTEM) LinkArt.spin(linkOn)
+                            else if (sysId == ANDROID_SYSTEM) SystemArt.video(ANDROID_SYSTEM, sys?.video.orEmpty())
+                                ?: AppArt.phone()
+                            // Favoritos no es una consola del catalogo: su giro, la estrella, va por su id.
+                            else if (sysId == FAVORITES_SYSTEM) SystemArt.video(FAVORITES_SYSTEM)
+                            else sys?.let { SystemArt.video(it.id, it.video) }
+                        }
+                        // La consola y su texto, junto a la lista y no en la sala: ver BesideListFrame.
+                        BesideListFrame(scene) { placed ->
+                            SceneConsole(
+                                skin = placed,
+                                video = spin,
+                                visible = screen is Screen.Systems,
+                            )
+                        }
+                        // Y el dialogo con lo que se cuenta de lo elegido, escrito a maquina. Es
+                        // lo que antes iba al pie del panel; con la sala, el panel se queda para
+                        // la lista y esto se lee debajo de la consola.
+                        val bookName = COMPANION_NAME
+                        val details = remember(
+                            screen, currentSystem, currentGame,
+                            vm.result, vm.androidGames, vm.art, vm.prefs.labelRevision, bookName,
+                            vm.played, companion, vm.chargeUah != null, vm.cardStory,
+                            LinkSaveCheck.on.value, LinkSaveCheck.address.value, LinkSaveCheck.peers.intValue,
+                        ) {
+                            when (screen) {
+                                is Screen.Systems ->
+                                    if (currentSystem == RECKONING_SYSTEM) reckoningDetails(vm, bookName)
+                                    else if (currentSystem == LINK_SYSTEM) linkDetails()
+                                    else currentSystem?.let { vm.systemCard(it) }
+                                is Screen.Games -> currentGame?.let { g ->
+                                    val card = vm.gameCard(g)
+                                    vm.cardStory?.let { (text, from) -> card.copy(text = text, footer = from) } ?: card
+                                }
                             }
                         }
-                    }
-                    BesideListFrame(scene) { placed -> SceneCaption(skin = placed, details = details) }
+                        BesideListFrame(scene) { placed -> SceneCaption(skin = placed, details = details) }
+                }
             }
         }
+        // La otra pantalla, si la hay: UNA ventana para toda la sesion, y dentro lo que mande el
+        // menu (la lista, o su panel con las pantallas cambiadas, encima de la sala). Ver
+        // DualScreen.stage.
+        val swapped = dual != null && DualScreen.swapped.value
+        if (dual != null) {
+            OnSecondDisplay(dual, generation = swapped) {
+                Box(Modifier.fillMaxSize().background(MenuGround)) {
+                    if (swapped) sceneLayer()
+                    // Cada menu con lo suyo: el de las consolas y el de los juegos son el mismo
+                    // codigo, y sin la clave el que llega heredaba lo recordado por el que se iba,
+                    // y se veia lo de antes hasta mover el cursor.
+                    val pane = DualScreen.stage.value
+                    androidx.compose.runtime.key(DualScreen.stageOwner) { pane?.invoke() }
+                }
+            }
+        }
+        if (!swapped) sceneLayer()
 
         Column(Modifier.fillMaxSize()) {
             TopBar(vm, onSettings = { settingsOpen = true }, onSearch = { if (!anyModal) searchOpen = true })
             // Con la lista en la pantalla de abajo, algo de arriba tiene que quedarse el foco: los
             // acordes (L+R, L2+R2) los lee la raiz, y solo le llegan con el foco dentro de ella.
-            if (dual != null) {
+            if (listAway) {
                 val anchor = rememberFocusRequester()
                 AutoFocus(anchor, enabled = !anyModal)
                 FocusAnchor(anchor)
@@ -955,7 +989,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
                         initial = currentSystem,
                         onOpen = { screen = Screen.Games(it) },
                         onReckoning = { statsOpen = true },
-                        refocus = anyModal to dual?.displayId,
+                        refocus = Triple(anyModal, dual?.displayId, listAway),
                         enabled = !anyModal,
                         onSelectionChange = { currentSystem = it },
                         onLongPress = { sys -> menuTarget(sys)?.let { menuFor = it } },
@@ -966,7 +1000,7 @@ private fun Root(vm: LibraryViewModel = viewModel()) {
                         GamesMenu(
                             vm, s.systemId,
                             onBack = { screen = Screen.Systems },
-                            refocus = anyModal to dual?.displayId,
+                            refocus = Triple(anyModal, dual?.displayId, listAway),
                             enabled = !anyModal,
                             onPlay = { g -> toast = vm.play(ctx, g) },
                             onSelectionChange = { currentGame = it },
@@ -1152,7 +1186,7 @@ private const val AMBIENCE_REST_MS = 3 * 60_000L
  * toques ni teclas: es solo un rotulo.
  */
 @androidx.compose.runtime.Composable
-private fun DevBadge() {
+internal fun DevBadge() {
     androidx.compose.foundation.layout.Box(
         androidx.compose.ui.Modifier.fillMaxSize(),
         contentAlignment = androidx.compose.ui.Alignment.TopCenter,

@@ -713,13 +713,24 @@ object SettingsModel {
             onChange = { prefs.batterySaver = it; Motion.saver.value = it },
         )
 
-        // Solo en consolas de dos pantallas: en las demas no hay nada que elegir.
-        if (DualScreen.display.value != null || !prefs.secondScreen) iface += SettingItem.Toggle(
+        // Solo con otra pantalla: sin ella no hay nada que elegir (pedido del usuario, 10-10-2026).
+        if (DualScreen.available.value != null) iface += SettingItem.Toggle(
             title = "Second screen",
-            description = "On a console with two screens, the list goes on the bottom one and the " +
-                "top one shows the room, the console and the game. Off keeps everything on the top screen.",
+            description = "With a second screen, the list goes on one and the room, the console and " +
+                "the game on the other. A game opens on the screen with the picture and Ludolog stays " +
+                "on the other; tap a touch screen three times to move the controls to the other one. " +
+                "Off keeps everything on this screen.",
             on = prefs.secondScreen,
             onChange = { prefs.secondScreen = it; DualScreen.refresh(ctx) },
+        )
+        // Y cual va en cual, mientras se usa la otra (10-10-2026).
+        if (DualScreen.available.value != null && prefs.secondScreen) iface += SettingItem.Toggle(
+            title = "Swap screens",
+            description = "The list stays on this screen and the other one shows the room, the " +
+                "console and the game. With a TV or a monitor, the picture goes big and you " +
+                "choose in your hands.",
+            on = prefs.swapScreens,
+            onChange = { prefs.swapScreens = it; DualScreen.refresh(ctx) },
         )
 
         iface += SettingItem.Action(
