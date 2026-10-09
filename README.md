@@ -4,7 +4,7 @@
 
 [![Build](https://github.com/monkikolab/ludolog-front-end/actions/workflows/build.yml/badge.svg)](https://github.com/monkikolab/ludolog-front-end/actions/workflows/build.yml)
 
-**v0.6.0** · A front-end for Android retro handhelds. Your games sorted by console and opened in the
+**v0.6.1** · A front-end for Android retro handhelds. Your games sorted by console and opened in the
 right emulator, with box art, video previews and themes, plus a Companion that turns what you play
 into a character.
 
