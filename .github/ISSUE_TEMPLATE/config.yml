@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions, ideas and setups
+    url: https://github.com/monkikolab/ludolog-front-end/discussions
+    about: Ask anything, suggest a feature or show your setup in Discussions.
+  - name: Ludolog Link (saves, ROM transfer, PC app)
+    url: https://github.com/monkikolab/ludolog-link/issues/new/choose
+    about: Problems with the add-on go in its own repository.

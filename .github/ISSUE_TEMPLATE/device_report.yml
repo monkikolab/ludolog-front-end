@@ -1,0 +1,65 @@
+name: Tried it on my device
+description: Tell how Ludolog runs on your handheld, good or bad. It helps know which devices work.
+title: "Device report: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Ludolog! Reports from devices other than the AYN Odin 3 and the Retroid
+        Pocket 5 are especially welcome. If something broke, a [bug report](https://github.com/monkikolab/ludolog-front-end/issues/new?template=bug_report.yml)
+        is better for that one thing.
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: e.g. AYN Thor, Retroid Pocket Mini V2, Anbernic RG556
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      placeholder: e.g. Android 14
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Ludolog version
+      description: In Settings → Data → About.
+      placeholder: e.g. 0.6.1
+    validations:
+      required: true
+  - type: dropdown
+    id: overall
+    attributes:
+      label: How did it go?
+      options:
+        - Works great
+        - Works, with some rough edges
+        - Barely works
+    validations:
+      required: true
+  - type: checkboxes
+    id: tried
+    attributes:
+      label: What did you try?
+      options:
+        - label: Browsing consoles and launching games
+        - label: Box art and gameplay videos
+        - label: Themes (Gallery, Parlour, Mainframe)
+        - label: The Companion (sessions, battery, stats)
+        - label: Search and Recently played
+        - label: Two screens, or a TV or monitor
+        - label: Ludolog as the home screen
+        - label: Ludolog Link
+  - type: textarea
+    id: emulators
+    attributes:
+      label: Emulators you launched from Ludolog
+      placeholder: e.g. RetroArch, DuckStation, NetherSX2, Dolphin, PPSSPP
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: What you liked, what felt off, screenshots of how it looks on your screen.

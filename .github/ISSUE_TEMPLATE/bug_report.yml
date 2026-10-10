@@ -1,0 +1,76 @@
+name: Bug report
+description: Something in Ludolog doesn't work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! The more detail, the faster it gets fixed.
+        Questions and ideas are welcome in [Discussions](https://github.com/monkikolab/ludolog-front-end/discussions).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What went wrong, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How to make it happen again, if you know.
+      placeholder: |
+        1. Open the PlayStation list
+        2. Press A on a game
+        3. ...
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: e.g. Retroid Pocket 5, AYN Odin 3
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      placeholder: e.g. Android 13
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Ludolog version
+      description: In Settings → Data → About.
+      placeholder: e.g. 0.6.1
+    validations:
+      required: true
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options:
+        - Gallery
+        - Parlour
+        - Mainframe
+        - Not related to the theme
+  - type: dropdown
+    id: screens
+    attributes:
+      label: Screens
+      options:
+        - One screen
+        - Two built-in screens
+        - Handheld with a TV or monitor
+  - type: input
+    id: emulator
+    attributes:
+      label: Emulator involved, if any
+      placeholder: e.g. RetroArch 1.22.2 with the Snes9x core
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics, screenshots or video
+      description: |
+        Settings → Data → About → *Export diagnostics* saves a zip to your Download folder. Have a
+        look at it first, then drag it here, along with any screenshots or a short video.
