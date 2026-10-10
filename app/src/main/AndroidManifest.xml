@@ -174,5 +174,13 @@
             </intent-filter>
         </receiver>
 
+        <!-- Las claves de las fuentes de arte (IGDB), para que Link las pase a los demas aparatos.
+             El permiso no cubre call(): LinkKeys mira ella misma el permiso y el paquete de Link. -->
+        <provider
+            android:name=".LinkKeys"
+            android:authorities="${applicationId}.keys"
+            android:exported="true"
+            android:permission="${applicationId}.permission.LINK" />
+
     </application>
 </manifest>

@@ -65,9 +65,16 @@ applied the next time Ludolog starts.
 - `GAME_OPENED` and `GAME_CLOSED`: an emulator started or returned (see below).
 - `COMPANION_CHANGED`: a Companion session was saved.
 - `EDITS_CHANGED`: the user corrected a game's or console's info.
+- `KEYS_CHANGED`: the user changed an art source key (IGDB). The keys aren't in the broadcast; Link
+  asks for them (see below).
 
 Ludolog also asks Link questions directly through Link's content provider
 (`<Link's package>.savecheck`): the save check before playing, and whether Link is listening.
+
+Link reads and writes the art source keys through Ludolog's content provider
+(`<Ludolog's package>.keys`), which answers only Link's package with the signature permission:
+`get` returns each key with the time it was set, and `put` stores the ones that are newer than
+Ludolog's own, sealing them with this device's keystore key.
 The development builds (Ludolog Dev, Link Dev) use their own packages, so they only talk to each
 other.
 If the system stopped Link's background service, Ludolog wakes it when it comes back to the
@@ -103,8 +110,9 @@ time, Ludolog launches the game as usual.
   applies them itself, then restarts as it does after a theme change, waiting until no game is
   being recorded and the app is in front. Credentials and the device's Companion identity can
   never be changed from outside.
-- **Art and videos.** The PC searches for art with Ludolog's own scraper code, and Link saves the
-  results in the device's `media/` folder. The PC doesn't use IGDB: those keys stay on the device.
+- **Art and videos.** The PC searches for art with Ludolog's own scraper code and the same sources,
+  IGDB included, and Link saves the results in the device's `media/` folder. As on the device, a
+  single game's box art or video can be searched and chosen from what turns up.
 - **Restoring a backup.** Link stages the files in `link/restore/` and marks the set complete only
   when every file has arrived. Ludolog restarts and moves them into place at startup, before
   anything opens the databases. An interrupted upload is never applied, and `config.xml` is never
@@ -123,6 +131,11 @@ time, Ludolog launches the game as usual.
   name. The latest correction wins, and a correction always beats the catalog; information that
   comes only from the catalog doesn't travel. Corrections that arrive are applied without being
   logged again, so they don't bounce back.
+- **Art source keys.** The IGDB keys entered on one device, or in the PC app, reach every paired
+  device and the PC; the most recent change wins, and clearing them travels too. Link's traffic
+  isn't encrypted yet, so the keys travel in a box of their own: each side makes a one-time key pair
+  (ECDH on P-256), and AES-GCM with a key derived from both and from the pairing key. On the device
+  Ludolog seals them as always; on the PC they are kept encrypted with the Windows account (DPAPI).
 
 ## Link inside Ludolog
 

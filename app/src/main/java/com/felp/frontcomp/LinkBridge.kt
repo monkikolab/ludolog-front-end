@@ -110,6 +110,14 @@ class LinkBridge : BroadcastReceiver() {
             runCatching { ctx.sendBroadcast(Intent(ACTION_COMPANION_CHANGED).setPackage(LINK_PACKAGE), PERMISSION) }
         }
 
+        /** De Ludolog a Link: el usuario cambio una clave de las fuentes de arte. Sin las claves: Link las pide (LinkKeys). */
+        const val ACTION_KEYS_CHANGED = "com.felp.frontcomp.link.KEYS_CHANGED"
+
+        /** Que Link pase ya las claves nuevas a los aparatos emparejados, como tras una partida. */
+        fun keysChanged(ctx: Context) {
+            runCatching { ctx.sendBroadcast(Intent(ACTION_KEYS_CHANGED).setPackage(LINK_PACKAGE), PERMISSION) }
+        }
+
         /** De Ludolog a Link: se abrio / se cerro un juego en un emulador (partidas guardadas). */
         const val ACTION_GAME_OPENED = "com.felp.frontcomp.link.GAME_OPENED"
         const val ACTION_GAME_CLOSED = "com.felp.frontcomp.link.GAME_CLOSED"

@@ -770,16 +770,12 @@ class Prefs(
      *
      * Y cifradas, con una clave del almacen de Android que no sale del aparato: ver Vault. Las
      * que una version anterior dejo en claro se cifran la primera vez que se leen.
+     *
+     * Con Ludolog Link, ademas, viajan a los aparatos emparejados (10-10-2026, pedido del usuario:
+     * escribirlas una vez basta): ver [sharedCredentials] y LinkKeys. La clave de Vault no viaja;
+     * cada aparato las vuelve a cifrar con la suya.
      */
     fun credential(key: String): String = opened.getOrPut(key) { readCredential(key) }
-
-    /**
-     * Lo ya descifrado. El almacen de claves es un servicio aparte y cada consulta cuesta
-     * milisegundos, y la ventana de fuentes pregunta por las credenciales al repintarse, que es
-     * a cada movimiento del cursor. En claro solo en memoria, que es donde tiene que estar para
-     * usarse.
-     */
-    private val opened = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     /**
      * Las credenciales que una version anterior dejo en claro, cifradas de una vez al arrancar.
@@ -796,13 +792,7 @@ class Prefs(
         }.onFailure { android.util.Log.w("Ludolog", "credentials not sealed: ${it.javaClass.simpleName}") }
     }
 
-    private fun readCredential(key: String): String {
-        val stored = secrets.getString(SECRET + key, null) ?: return ""
-        if (Vault.isSealed(stored)) return Vault.open(stored).orEmpty()
-        runCatching { secrets.edit().putString(SECRET + key, Vault.seal(stored)).apply() }
-            .onFailure { android.util.Log.w("Ludolog", "credential not sealed: ${it.javaClass.simpleName}") }
-        return stored
-    }
+    private fun readCredential(key: String): String = readCredential(secrets, key)
 
     fun setCredential(key: String, value: String) {
         val v = value.trim()
@@ -811,6 +801,9 @@ class Prefs(
             // volver a escribirla es menos malo que dejarla asi.
             if (v.isEmpty()) remove(SECRET + key)
             else runCatching { Vault.seal(v) }.getOrNull()?.let { putString(SECRET + key, it) }
+            // Cuando, tambien al vaciarla: la mas nueva gana en todos los aparatos, y vaciarla
+            // apaga la fuente en todos. Ver [sharedCredentials].
+            putLong(STAMP + key, System.currentTimeMillis())
         }.apply()
         opened.remove(key)
         labelRevision++
@@ -883,6 +876,65 @@ class Prefs(
 
         /** El prefijo de las credenciales. Lo que empieza asi no sale nunca a `config.xml`. */
         const val SECRET = "art."
+
+        /** Cuando se puso (o se quito) cada credencial, en las mismas preferencias privadas. */
+        private const val STAMP = "artat."
+
+        /**
+         * Lo ya descifrado, del proceso entero. El almacen de claves es un servicio aparte y cada
+         * consulta cuesta milisegundos, y la ventana de fuentes pregunta por las credenciales al
+         * repintarse, que es a cada movimiento del cursor. En claro solo en memoria, que es donde
+         * tiene que estar para usarse. Una sola para todas las instancias: las que llegan de Link
+         * (LinkKeys) se ven al momento en la que esta usando la pantalla.
+         */
+        private val opened = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+        private fun readCredential(secrets: SharedPreferences, key: String): String {
+            val stored = secrets.getString(SECRET + key, null) ?: return ""
+            if (Vault.isSealed(stored)) return Vault.open(stored).orEmpty()
+            runCatching { secrets.edit().putString(SECRET + key, Vault.seal(stored)).apply() }
+                .onFailure { android.util.Log.w("Ludolog", "credential not sealed: ${it.javaClass.simpleName}") }
+            return stored
+        }
+
+        /** Las que viajan con Link: las casillas de las fuentes de arte (ART_TIERS), hoy las de IGDB. */
+        private val shared: List<String> get() = ART_TIERS.flatMap { it.keys }
+
+        /** Cuando se puso: la puesta antes de que se apuntara (hasta 0.6.1) cuenta como la mas vieja. */
+        private fun stampOf(secrets: SharedPreferences, key: String): Long =
+            secrets.getLong(STAMP + key, 0L).takeIf { it > 0 }
+                ?: if (opened.getOrPut(key) { readCredential(secrets, key) }.isNotEmpty()) 1L else 0L
+
+        /**
+         * Las credenciales que Ludolog Link pasa a los aparatos emparejados, en claro y con cuando se
+         * pusieron: solo para LinkKeys, que solo atiende a Link. Las que nunca se pusieron no van.
+         */
+        internal fun sharedCredentials(secrets: SharedPreferences): Map<String, Pair<String, Long>> =
+            shared.associateWith { k -> opened.getOrPut(k) { readCredential(secrets, k) } to stampOf(secrets, k) }
+                .filterValues { it.second > 0 }
+
+        /**
+         * Las que llegan de otro aparato por Link: cada una solo si es mas nueva que la de aqui, y
+         * solo las de las fuentes de arte. Vacia y mas nueva, se quita. Devuelve cuantas cambio.
+         */
+        internal fun importCredentials(secrets: SharedPreferences, incoming: Map<String, Pair<String, Long>>): Int {
+            val e = secrets.edit()
+            val changed = ArrayList<String>()
+            for ((k, got) in incoming) {
+                val (raw, at) = got
+                val v = raw.trim()
+                if (k !in shared || at <= stampOf(secrets, k) || v.length > 512) continue
+                if (v.isEmpty()) e.remove(SECRET + k)
+                else e.putString(SECRET + k, runCatching { Vault.seal(v) }.getOrNull() ?: continue)
+                e.putLong(STAMP + k, at)
+                changed += k
+            }
+            if (changed.isEmpty()) return 0
+            e.commit()
+            // Despues de escribir: antes, quien leyera entre medias volvia a guardar la vieja.
+            changed.forEach { opened.remove(it) }
+            return changed.size
+        }
         private const val RENDER = "render.sys."
 
         /** Los ajustes que son de cada tema. Lo demas —biblioteca, arte, cuaderno— es de todos. */

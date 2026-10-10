@@ -62,6 +62,10 @@ Enter its Client ID and secret in **Settings → Artwork → Art sources**. They
 and only used to talk to Twitch and IGDB. Ludolog ships no keys of its own: a key inside an APK
 could be read by anyone and would be shared by every install. IGDB is never used for the catalog.
 
+With [Ludolog Link](ludolog-link.md), entering the keys once is enough: Link passes them, encrypted,
+to your paired devices and to the PC app, whose scraper then uses IGDB too. The most recent change
+wins everywhere, and clearing them turns IGDB off on every device.
+
 ## Known limits
 
 - No free gameplay videos for Steam, PS3 and Switch.

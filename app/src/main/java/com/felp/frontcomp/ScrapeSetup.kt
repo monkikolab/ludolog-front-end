@@ -113,6 +113,7 @@ internal fun ColumnScope.ArtSourcesPane(vm: LibraryViewModel) {
     var selected by remember { mutableStateOf(0) }
     var helping by remember { mutableStateOf<ArtTier?>(null) }
     val t = LocalTheme.current
+    val ctx = androidx.compose.ui.platform.LocalContext.current
 
     editing?.let { (tier, field) ->
         val (key, label) = tier.fields[field]
@@ -126,11 +127,15 @@ internal fun ColumnScope.ArtSourcesPane(vm: LibraryViewModel) {
                     title = label.uppercase(),
                     initial = vm.prefs.credential(key),
                     secret = "pass" in key || "secret" in key,
-                    help = "${tier.title}. Kept encrypted on this device only; leave it empty to turn " +
-                        "the source off.",
+                    // Con Link, la misma clave llega a los aparatos emparejados: ver Prefs.sharedCredentials.
+                    help = "${tier.title}. Kept encrypted. Ludolog Link shares it with your paired devices. " +
+                        "Leave it empty to turn the source off.",
                     onCancel = cancel,
                     onDone = { value ->
-                        vm.prefs.setCredential(key, value)
+                        if (value.trim() != vm.prefs.credential(key)) {
+                            vm.prefs.setCredential(key, value)
+                            LinkBridge.keysChanged(ctx)
+                        }
                         editing = null
                         revision++
                     },

@@ -443,7 +443,8 @@ object SettingsModel {
         )
 
         // Con una segunda A. Borra de todo —nombres, descripciones, emuladores elegidos, atajos,
-        // carpetas y las claves de IGDB, que hay que volver a escribir a mano—, y
+        // carpetas y las claves de IGDB, que hay que volver a escribir a mano o que vuelven de los
+        // otros aparatos con Link, porque borrarlas asi no apaga la fuente en los demas—, y
         // con una sola pulsacion bastaba un toque de mas al bajar por la pestana.
         data += SettingItem.Action(
             title = "Clear preferences",
